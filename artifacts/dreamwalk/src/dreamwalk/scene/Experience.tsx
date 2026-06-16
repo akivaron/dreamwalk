@@ -20,16 +20,25 @@ import { Grass } from "./Grass";
 import { Birds } from "./Birds";
 import { Fireflies } from "./Fireflies";
 import { Waterfall } from "./Waterfall";
+import { ConcertOverlay } from "./ConcertOverlay";
 
 interface ExperienceProps {
   world: World;
   analyser: AnalyserNode | null;
   syncedLyrics?: SyncedLyricLine[];
   getAudioTime?: () => number;
+  concertModeActive?: boolean;
   onScreenshotReady: (fn: () => string) => void;
 }
 
-export function Experience({ world, analyser, syncedLyrics, getAudioTime, onScreenshotReady }: ExperienceProps) {
+export function Experience({
+  world,
+  analyser,
+  syncedLyrics,
+  getAudioTime,
+  concertModeActive,
+  onScreenshotReady,
+}: ExperienceProps) {
   return (
     <Canvas
       shadows={{ type: THREE.PCFSoftShadowMap }}
@@ -61,7 +70,8 @@ export function Experience({ world, analyser, syncedLyrics, getAudioTime, onScre
         <Birds />
         <Fireflies world={world} />
         <Particles world={world} />
-        <PostFX world={world} />
+        <ConcertOverlay active={!!concertModeActive} />
+        <PostFX world={world} concertModeActive={!!concertModeActive} />
         <ScreenshotHelper onReady={onScreenshotReady} />
       </Suspense>
     </Canvas>

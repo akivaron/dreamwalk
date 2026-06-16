@@ -75,6 +75,11 @@ export function useDreamContext() {
       loadingStep: "Tuning into the signal...",
       error: null,
       ready: false,
+      context: {
+        ...DEFAULT_CONTEXT,
+        song,
+        trends: prev.context.trends,
+      },
     }));
 
     try {
@@ -96,8 +101,8 @@ export function useDreamContext() {
 
       const [narrationResult, concerts, trends] = await Promise.all([
         generateNarration(narrationText).catch(() => ({ text: narrationText, audioUrl: null })),
-        fetchConcerts(song.artist).catch(() => []),
-        fetchItunesTrending().catch(() => []),
+        fetchConcerts(song.artist).catch(() => [] as Awaited<ReturnType<typeof fetchConcerts>>),
+        fetchItunesTrending().catch(() => [] as Awaited<ReturnType<typeof fetchItunesTrending>>),
       ]);
 
       if (ctrl.signal.aborted) return;

@@ -8,9 +8,10 @@ import { DreamLoadingScreen } from "./dreamwalk/ui/DreamLoadingScreen";
 import { TRACKS } from "./dreamwalk/tracks";
 import { WORLDS } from "./dreamwalk/worlds";
 import { useAudioEngine } from "./dreamwalk/audio/useAudioEngine";
-import { resetAudioLevels } from "./dreamwalk/audio/audioStore";
+import { resetAudioLevels, dreamEvents } from "./dreamwalk/audio/audioStore";
 import { useDreamContext } from "./dreamwalk/dream/useDreamContext";
 import { buildWorldFromContext } from "./dreamwalk/dream/worldBuilder";
+import { generateNarration } from "./dreamwalk/dream/api/narration";
 import type { DreamSong } from "./dreamwalk/dream/types";
 
 type Phase = "title" | "entering" | "experience" | "exiting";
@@ -25,6 +26,8 @@ export default function App() {
   const screenshotFn = useRef<(() => string) | null>(null);
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
+  const climaxFiredRef = useRef(false);
+  const climaxRafRef = useRef<number | null>(null);
 
   const dream = useDreamContext();
 
@@ -81,23 +84,64 @@ export default function App() {
     [dream],
   );
 
-  const playNarration = useCallback(() => {
-    const { context } = dream;
-    if (!context.narrationEnabled || !context.narrationAudioUrl || narrationPlayed) return;
+  const playNarrationAudio = useCallback((url: string, volume = 0.75) => {
     if (!narrationAudioRef.current) {
       narrationAudioRef.current = new Audio();
     }
     const el = narrationAudioRef.current;
-    el.src = context.narrationAudioUrl;
-    el.volume = 0.75;
+    el.src = url;
+    el.volume = volume;
     void el.play().catch(() => undefined);
+  }, []);
+
+  const playNarration = useCallback(() => {
+    const { context } = dream;
+    if (!context.narrationEnabled || !context.narrationAudioUrl || narrationPlayed) return;
+    playNarrationAudio(context.narrationAudioUrl, 0.75);
     setNarrationPlayed(true);
-  }, [dream, narrationPlayed]);
+  }, [dream, narrationPlayed, playNarrationAudio]);
+
+  const startClimaxWatcher = useCallback(() => {
+    climaxFiredRef.current = false;
+    let wasEmotional = false;
+
+    const tick = () => {
+      if (climaxFiredRef.current) return;
+      const isNow = dreamEvents.isEmotionalLine;
+      if (isNow && !wasEmotional) {
+        climaxFiredRef.current = true;
+        const { context } = dream;
+        if (context.narrationEnabled && context.song && context.mood) {
+          const climaxLine = dreamEvents.currentLine;
+          const text = climaxLine
+            ? `"${climaxLine}" — feel this moment.`
+            : `This is the heart of the dream. Let it wash over you.`;
+          void generateNarration(text).then((result) => {
+            if (result.audioUrl) {
+              playNarrationAudio(result.audioUrl, 0.6);
+            }
+          });
+        }
+        return;
+      }
+      wasEmotional = isNow;
+      climaxRafRef.current = requestAnimationFrame(tick);
+    };
+    climaxRafRef.current = requestAnimationFrame(tick);
+  }, [dream, playNarrationAudio]);
+
+  const stopClimaxWatcher = useCallback(() => {
+    if (climaxRafRef.current !== null) {
+      cancelAnimationFrame(climaxRafRef.current);
+      climaxRafRef.current = null;
+    }
+  }, []);
 
   const enter = useCallback(() => {
     clearTransition();
     setPhase("entering");
     setNarrationPlayed(false);
+    climaxFiredRef.current = false;
 
     if (songMode === "dream" && dream.context.narrationEnabled && dream.context.narrationAudioUrl) {
       playNarration();
@@ -107,11 +151,15 @@ export default function App() {
     transitionTimer.current = setTimeout(() => {
       transitionTimer.current = null;
       setPhase((p) => (p === "entering" ? "experience" : p));
+      if (songMode === "dream") {
+        startClimaxWatcher();
+      }
     }, 2600);
-  }, [engine, activeAudioFile, clearTransition, songMode, dream, playNarration]);
+  }, [engine, activeAudioFile, clearTransition, songMode, dream, playNarration, startClimaxWatcher]);
 
   const exit = useCallback(() => {
     clearTransition();
+    stopClimaxWatcher();
     setPhase("exiting");
     narrationAudioRef.current?.pause();
     transitionTimer.current = setTimeout(() => {
@@ -124,7 +172,11 @@ export default function App() {
       }
       setPhase("title");
     }, 1800);
-  }, [engine, clearTransition]);
+  }, [engine, clearTransition, stopClimaxWatcher]);
+
+  useEffect(() => {
+    return () => stopClimaxWatcher();
+  }, [stopClimaxWatcher]);
 
   const captureScreenshot = useCallback(() => {
     const data = screenshotFn.current?.();
@@ -141,13 +193,15 @@ export default function App() {
 
   const experienceKey = `${activeWorld.id}-${songMode === "dream" ? (dream.context.song?.id ?? "none") : trackId}`;
 
+  const showLoading = dream.loading && !!dream.context.song;
+
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
-      {dream.loading && dream.context.song && (
+      {showLoading && (
         <DreamLoadingScreen
-          title={dream.context.song.title}
-          artist={dream.context.song.artist}
-          artworkUrl={dream.context.song.artworkUrl}
+          title={dream.context.song!.title}
+          artist={dream.context.song!.artist}
+          artworkUrl={dream.context.song!.artworkUrl}
           step={dream.loadingStep}
           visible={dream.loading}
         />
@@ -163,6 +217,7 @@ export default function App() {
               songMode === "dream" ? (dream.context.lyrics?.synced ?? undefined) : undefined
             }
             getAudioTime={engine.getProgress ? () => engine.getProgress().time : undefined}
+            concertModeActive={songMode === "dream" ? dream.context.concertModeActive : false}
             onScreenshotReady={(fn) => {
               screenshotFn.current = fn;
             }}
