@@ -1,0 +1,267 @@
+Build a web experience called "DreamWalk".
+
+Tagline:
+"Walk inside your music."
+
+DreamWalk is an atmospheric music experience inspired by the emotional feeling of Journey.
+
+IMPORTANT:
+This is NOT a game.
+This is NOT a music visualizer.
+
+It is a meditative, cinematic experience where users enter a beautiful world generated from a song.
+
+--------------------------------------------------
+VISUAL DIRECTION
+--------------------------------------------------
+
+Inspiration:
+- Journey
+- Sky: Children of the Light
+- Monument Valley
+- PlayStation Dreams
+
+Core feelings:
+- wonder
+- solitude
+- peace
+- nostalgia
+- discovery
+- emotional connection
+
+The world should feel:
+
+- vast
+- minimal
+- dreamlike
+- mysterious
+- sacred
+
+--------------------------------------------------
+ART STYLE
+--------------------------------------------------
+
+No realistic graphics.
+
+Use:
+
+- stylized low poly
+- large empty landscapes
+- soft gradients
+- atmospheric fog
+- volumetric lighting
+- floating particles
+- distant silhouettes
+
+Avoid:
+
+- detailed assets
+- photorealism
+- complex textures
+- cluttered environments
+
+Everything should look like a playable painting.
+
+--------------------------------------------------
+COLOR PALETTES
+--------------------------------------------------
+
+Golden Desert
+Warm orange, sand, sunset.
+
+Moon Ocean
+Deep blue, silver, stars.
+
+Ancient Kingdom
+Gold, white, clouds.
+
+Emerald Valley
+Green, teal, morning fog.
+
+Snow Sanctuary
+White, blue, aurora.
+
+Dream Night
+Purple, indigo, stars.
+
+--------------------------------------------------
+WORLD GENERATION
+--------------------------------------------------
+
+Generate landscapes using primitives:
+
+- dunes
+- mountains
+- floating islands
+- arches
+- monoliths
+- pillars
+- ruins
+- cloth banners
+
+No buildings are necessary.
+
+No NPCs.
+
+No enemies.
+
+No inventory.
+
+--------------------------------------------------
+CAMERA
+--------------------------------------------------
+
+The camera is extremely important.
+
+Use:
+
+- slow cinematic movement
+- subtle drift
+- smooth transitions
+- gentle zoom
+- large scale compositions
+
+Camera should make the player feel small in a huge world.
+
+--------------------------------------------------
+MOVEMENT
+--------------------------------------------------
+
+The user can:
+
+- walk slowly
+- rotate camera
+- stop and observe
+
+Movement speed should be peaceful.
+
+No running.
+
+No jumping.
+
+No combat.
+
+--------------------------------------------------
+MUSIC SYNCHRONIZATION
+--------------------------------------------------
+
+Visual changes should be subtle.
+
+Verse:
+- soft wind
+- small particles
+
+Chorus:
+- stronger light
+- banners move
+- camera slightly rises
+
+Bridge:
+- color transition
+
+Emotional climax:
+- sun rays
+- aurora
+- particle bloom
+
+Avoid aggressive visual effects.
+
+The music should feel alive, not like a nightclub visualizer.
+
+--------------------------------------------------
+LYRICS TO WORLD
+--------------------------------------------------
+
+Use Musixmatch lyrics and keywords.
+
+Examples:
+
+"desert"
+→ dunes and sand.
+
+"stars"
+→ night sky.
+
+"ocean"
+→ moonlit sea.
+
+"mountain"
+→ distant peaks.
+
+"castle"
+→ ruins and towers.
+
+"fire"
+→ floating embers.
+
+"home"
+→ warm lighting.
+
+--------------------------------------------------
+UI DESIGN
+--------------------------------------------------
+
+Minimal UI.
+
+Inspired by Journey.
+
+No sidebars.
+
+No dashboard.
+
+No complex menus.
+
+Only:
+
+- logo
+- song title
+- artist name
+- small play button
+- enter dream button
+
+Inside the experience:
+
+Hide all UI.
+
+Only show:
+
+- pause
+- screenshot
+- exit
+
+Everything fades in and fades out.
+
+--------------------------------------------------
+TRANSITIONS
+--------------------------------------------------
+
+Transitions should feel magical.
+
+Fade through fog.
+
+Camera dives into clouds.
+
+Sunlight bloom.
+
+Floating particles.
+
+--------------------------------------------------
+EMOTIONAL GOAL
+--------------------------------------------------
+
+The user should feel:
+
+"I am walking inside the emotion of this song."
+
+Prioritize:
+
+1. atmosphere
+2. emotion
+3. beauty
+4. simplicity
+
+Never prioritize gameplay.
+Never prioritize realism.
+Never prioritize complexity.
+
+This is an emotional journey generated from music.
