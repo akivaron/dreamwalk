@@ -15,6 +15,114 @@ router.get("/trending", async (_req: Request, res: Response) => {
   }
 });
 
+interface RichsyncLine {
+  ts: number;
+  te: number;
+  x: string;
+  l?: Array<{ c: string; o: number }>;
+}
+
+interface SyncedLine {
+  time: number;
+  text: string;
+}
+
+function parseRichsync(body: string): SyncedLine[] {
+  try {
+    const lines = JSON.parse(body) as RichsyncLine[];
+    return lines
+      .filter((l) => typeof l.x === "string" && l.x.trim().length > 0)
+      .map((l) => ({ time: l.ts, text: l.x.trim() }));
+  } catch {
+    return [];
+  }
+}
+
+async function musixmatchLyrics(
+  artist: string,
+  title: string,
+  apiKey: string,
+): Promise<{ lyrics: string; synced: SyncedLine[]; source: string } | null> {
+  const BASE = "https://api.musixmatch.com/ws/1.1";
+
+  // 1. Search for the track
+  const searchUrl =
+    `${BASE}/track.search?` +
+    new URLSearchParams({
+      q_track: title,
+      q_artist: artist,
+      page_size: "1",
+      page: "1",
+      s_track_rating: "desc",
+      apikey: apiKey,
+    });
+
+  const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(6000) });
+  if (!searchRes.ok) return null;
+
+  const searchData = (await searchRes.json()) as {
+    message: {
+      body: { track_list: Array<{ track: { track_id: number; has_richsync: number } }> };
+    };
+  };
+
+  const trackEntry = searchData.message?.body?.track_list?.[0]?.track;
+  if (!trackEntry?.track_id) return null;
+
+  const trackId = trackEntry.track_id;
+
+  // 2a. Try richsync (word-level timestamps) first
+  if (trackEntry.has_richsync === 1) {
+    try {
+      const richsyncUrl =
+        `${BASE}/track.richsync.get?` +
+        new URLSearchParams({ track_id: String(trackId), apikey: apiKey });
+
+      const richRes = await fetch(richsyncUrl, { signal: AbortSignal.timeout(6000) });
+      if (richRes.ok) {
+        const richData = (await richRes.json()) as {
+          message: { body: { richsync: { richsync_body: string; richsync_id: number } } };
+        };
+        const richBody = richData.message?.body?.richsync?.richsync_body;
+        if (richBody) {
+          const synced = parseRichsync(richBody);
+          if (synced.length > 0) {
+            const lyrics = synced.map((l) => l.text).join("\n");
+            return { lyrics, synced, source: "musixmatch-richsync" };
+          }
+        }
+      }
+    } catch {
+      /* fall through to plain lyrics */
+    }
+  }
+
+  // 2b. Fall back to plain lyrics (no timestamps)
+  try {
+    const lyricsUrl =
+      `${BASE}/track.lyrics.get?` +
+      new URLSearchParams({ track_id: String(trackId), apikey: apiKey });
+
+    const lyricsRes = await fetch(lyricsUrl, { signal: AbortSignal.timeout(6000) });
+    if (lyricsRes.ok) {
+      const lyricsData = (await lyricsRes.json()) as {
+        message: { body: { lyrics: { lyrics_body: string } } };
+      };
+      const body = lyricsData.message?.body?.lyrics?.lyrics_body;
+      if (body) {
+        const cleaned = body
+          .replace(/\*{7} This Lyrics is NOT for Commercial use \*{7}.*$/s, "")
+          .trim();
+        return { lyrics: cleaned, synced: [], source: "musixmatch" };
+      }
+    }
+  } catch {
+    /* fall through */
+  }
+
+  return null;
+}
+
 router.get("/lyrics", async (req: Request, res: Response) => {
   const artist = String(req.query.artist ?? "").trim();
   const title = String(req.query.title ?? "").trim();
@@ -27,30 +135,10 @@ router.get("/lyrics", async (req: Request, res: Response) => {
 
   if (musixKey) {
     try {
-      const searchUrl = `https://api.musixmatch.com/ws/1.1/track.search?q_track=${encodeURIComponent(title)}&q_artist=${encodeURIComponent(artist)}&page_size=1&page=1&s_track_rating=desc&apikey=${musixKey}`;
-      const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(5000) });
-      if (searchRes.ok) {
-        const searchData = (await searchRes.json()) as {
-          message: {
-            body: { track_list: Array<{ track: { track_id: number } }> };
-          };
-        };
-        const trackId = searchData.message?.body?.track_list?.[0]?.track?.track_id;
-        if (trackId) {
-          const lyricsUrl = `https://api.musixmatch.com/ws/1.1/track.lyrics.get?track_id=${trackId}&apikey=${musixKey}`;
-          const lyricsRes = await fetch(lyricsUrl, { signal: AbortSignal.timeout(5000) });
-          if (lyricsRes.ok) {
-            const lyricsData = (await lyricsRes.json()) as {
-              message: { body: { lyrics: { lyrics_body: string } } };
-            };
-            const lyricsBody = lyricsData.message?.body?.lyrics?.lyrics_body;
-            if (lyricsBody) {
-              const cleaned = lyricsBody.replace(/\*{7} This Lyrics is NOT for Commercial use \*{7}.*$/s, "").trim();
-              res.json({ lyrics: cleaned, source: "musixmatch" });
-              return;
-            }
-          }
-        }
+      const result = await musixmatchLyrics(artist, title, musixKey);
+      if (result) {
+        res.json(result);
+        return;
       }
     } catch {
       /* fall through to lyrics.ovh */
@@ -63,7 +151,7 @@ router.get("/lyrics", async (req: Request, res: Response) => {
     if (ovhRes.ok) {
       const ovhData = (await ovhRes.json()) as { lyrics?: string; error?: string };
       if (ovhData.lyrics) {
-        res.json({ lyrics: ovhData.lyrics, source: "ovh" });
+        res.json({ lyrics: ovhData.lyrics, synced: [], source: "ovh" });
         return;
       }
     }
@@ -71,7 +159,7 @@ router.get("/lyrics", async (req: Request, res: Response) => {
     /* no lyrics available */
   }
 
-  res.json({ lyrics: null, source: null });
+  res.json({ lyrics: null, synced: [], source: null });
 });
 
 router.post("/narrate", async (req: Request, res: Response) => {
