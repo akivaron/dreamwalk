@@ -20,6 +20,20 @@ import { songDetailStore } from "./dreamwalk/songDetailStore";
 
 type Phase = "title" | "entering" | "experience" | "exiting";
 
+const API_BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") + "/api";
+
+function toProxiedUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const itunes = ["audio-ssl.itunes.apple.com", "audio.itunes.apple.com", "a1.mzstatic.com"];
+    if (itunes.some((h) => u.hostname === h || u.hostname.endsWith("." + h))) {
+      return `${API_BASE}/audio-proxy?url=${encodeURIComponent(url)}`;
+    }
+  } catch { /* not an absolute URL, leave as-is */ }
+  return url;
+}
+
 export default function App() {
   const [matchDetail] = useRoute("/song/:id");
   const [, navigate] = useLocation();
@@ -61,7 +75,7 @@ export default function App() {
       : undefined;
   const activeAudioFile: string | null =
     songMode === "dream"
-      ? (dream.context.song?.previewUrl ?? null)
+      ? toProxiedUrl(dream.context.song?.previewUrl)
       : curatedTrack.file;
 
   const clearTransition = useCallback(() => {
@@ -195,7 +209,7 @@ export default function App() {
       playNarration();
     }
 
-    if (activeAudioFile) void engine.loadAndPlay(activeAudioFile as string);
+    if (activeAudioFile) void engine.loadAndPlay(activeAudioFile);
     transitionTimer.current = setTimeout(() => {
       transitionTimer.current = null;
       setPhase((p) => (p === "entering" ? "experience" : p));
