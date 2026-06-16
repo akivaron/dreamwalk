@@ -610,6 +610,85 @@ router.post("/narrate", async (req: Request, res: Response) => {
   }
 });
 
+// ─── /api/song-wiki — Wikipedia song + artist summaries (free, no key) ─────────
+
+router.get("/song-wiki", async (req: Request, res: Response) => {
+  const artist = String(req.query["artist"] ?? "").trim();
+  const title  = String(req.query["title"]  ?? "").trim();
+  if (!artist || !title) { res.status(400).json({ error: "artist and title required" }); return; }
+
+  const BASE = "https://en.wikipedia.org";
+
+  async function wikiSummary(pageTitle: string) {
+    try {
+      const r = await fetch(`${BASE}/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`,
+        { signal: AbortSignal.timeout(5000), headers: { Accept: "application/json" } });
+      if (!r.ok) return null;
+      const d = (await r.json()) as {
+        extract?: string; description?: string;
+        thumbnail?: { source: string };
+        content_urls?: { desktop?: { page?: string } };
+      };
+      return {
+        extract: d.extract ?? "",
+        description: d.description ?? "",
+        thumbnail: d.thumbnail?.source ?? null,
+        url: d.content_urls?.desktop?.page ?? null,
+      };
+    } catch { return null; }
+  }
+
+  async function wikiSearch(query: string): Promise<string | null> {
+    try {
+      const r = await fetch(
+        `${BASE}/w/api.php?` + new URLSearchParams({
+          action: "query", list: "search",
+          srsearch: query, format: "json", utf8: "1", srlimit: "3",
+        }),
+        { signal: AbortSignal.timeout(5000) },
+      );
+      if (!r.ok) return null;
+      const d = (await r.json()) as { query?: { search?: Array<{ title: string }> } };
+      return d.query?.search?.[0]?.title ?? null;
+    } catch { return null; }
+  }
+
+  try {
+    // For artist, try exact name first — if the top result title contains the artist name, use it.
+    // Otherwise fall back to broader music query.
+    async function findArtistPage(name: string): Promise<string | null> {
+      const direct = await wikiSearch(name);
+      if (direct && direct.toLowerCase().includes(name.toLowerCase().split(" ")[0])) return direct;
+      return wikiSearch(`${name} musician singer rapper artist discography`);
+    }
+
+    const [songTitle, artistTitle] = await Promise.all([
+      wikiSearch(`"${title}" ${artist} song single`),
+      findArtistPage(artist),
+    ]);
+
+    const [songData, artistData] = await Promise.all([
+      songTitle  ? wikiSummary(songTitle)  : Promise.resolve(null),
+      artistTitle ? wikiSummary(artistTitle) : Promise.resolve(null),
+    ]);
+
+    res.json({
+      songExtract:     songData?.extract   ? songData.extract.slice(0, 700)   : null,
+      songDescription: songData?.description ?? null,
+      songWikiTitle:   songTitle,
+      songWikiUrl:     songData?.url ?? null,
+      artistExtract:     artistData?.extract   ? artistData.extract.slice(0, 500)   : null,
+      artistDescription: artistData?.description ?? null,
+      artistThumbnail:   artistData?.thumbnail ?? null,
+      artistWikiTitle:   artistTitle,
+      artistWikiUrl:     artistData?.url ?? null,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: `song-wiki failed: ${msg.slice(0, 200)}` });
+  }
+});
+
 // ─── /api/track-details — Musixmatch track + artist metadata ─────────────────
 
 router.get("/track-details", async (req: Request, res: Response) => {

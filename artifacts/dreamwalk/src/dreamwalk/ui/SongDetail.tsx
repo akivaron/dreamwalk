@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Building2, Check, Cloud, CloudRain, Disc, Droplets, Flame, Globe,
-  Heart, Home, Moon, Mountain, Music, Music2, Route, Search, Share2,
-  Smile, Snowflake, Sparkles, Stars, Sun, Sunrise, TreePine, User,
-  Waves, Zap,
+  BookOpen, Building2, Check, Cloud, CloudRain, Disc, Droplets,
+  ExternalLink, Flame, Globe, Heart, Home, Moon, Mountain, Music,
+  Music2, Pen, Route, Search, Share2, Smile, Snowflake, Sparkles,
+  Stars, Sun, Sunrise, TreePine, User, Waves, Zap,
 } from "lucide-react";
 import type { DreamSong, LyricsData, MoodData, TrendingTrack } from "../dream/types";
 import { fetchLyrics } from "../dream/api/lyrics";
@@ -180,6 +180,45 @@ function useTrackDetails(song: DreamSong): TrackDetails {
     return () => { cancelled = true; };
   }, [song.id, song.artist, song.title]);
   return details;
+}
+
+// ─── Song Wiki hook ───────────────────────────────────────────────────────────
+
+interface SongWiki {
+  songExtract: string | null;
+  songDescription: string | null;
+  songWikiTitle: string | null;
+  songWikiUrl: string | null;
+  artistExtract: string | null;
+  artistDescription: string | null;
+  artistThumbnail: string | null;
+  artistWikiTitle: string | null;
+  artistWikiUrl: string | null;
+  loading: boolean;
+}
+
+function useSongWiki(song: DreamSong): SongWiki {
+  const [wiki, setWiki] = useState<SongWiki>({
+    songExtract: null, songDescription: null, songWikiTitle: null, songWikiUrl: null,
+    artistExtract: null, artistDescription: null, artistThumbnail: null,
+    artistWikiTitle: null, artistWikiUrl: null, loading: true,
+  });
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const url = `/api/song-wiki?${new URLSearchParams({ artist: song.artist, title: song.title })}`;
+        const r = await fetch(url, { signal: AbortSignal.timeout(14000) });
+        if (!r.ok || cancelled) { if (!cancelled) setWiki((d) => ({ ...d, loading: false })); return; }
+        const data = (await r.json()) as Partial<SongWiki>;
+        if (!cancelled) setWiki({ ...(data as SongWiki), loading: false });
+      } catch {
+        if (!cancelled) setWiki((d) => ({ ...d, loading: false }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [song.id, song.artist, song.title]);
+  return wiki;
 }
 
 // ─── Country helpers ──────────────────────────────────────────────────────────
@@ -645,6 +684,7 @@ export function SongDetail({
 
   const insights = useSongInsights(song);
   const trackDetails = useTrackDetails(song);
+  const wiki = useSongWiki(song);
   const largeArt = getLargeArtwork(song.artworkUrl);
 
   // ── Audio controls ──
@@ -699,6 +739,33 @@ export function SongDetail({
   const wordCount = rawWords.length;
   const uniqueWords = new Set(rawWords.map((w) => w.toLowerCase().replace(/[^a-z]/g, ""))).size;
   const avgWordsPerLine = totalLines > 0 ? (wordCount / totalLines).toFixed(1) : "–";
+
+  // ── Extended lyric analysis ──
+  const avgWordLength = wordCount > 0
+    ? rawWords.reduce((s, w) => s + w.replace(/[^a-zA-Z]/g, "").length, 0) / wordCount
+    : 0;
+  const readingLevel = avgWordLength < 4 ? "Simple" : avgWordLength < 5 ? "Moderate" : avgWordLength < 6 ? "Complex" : "Dense";
+  const readingColor = avgWordLength < 4 ? "text-emerald-400/70" : avgWordLength < 5 ? "text-sky-400/70" : avgWordLength < 6 ? "text-amber-400/70" : "text-red-400/70";
+
+  const mostRepeatedLine = (() => {
+    if (syncedLines.length === 0) return null;
+    const counts = new Map<string, number>();
+    syncedLines.forEach((l) => {
+      const k = l.text.toLowerCase().trim();
+      if (k.length > 4) counts.set(k, (counts.get(k) ?? 0) + 1);
+    });
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    return top && top[1] > 1 ? { text: top[0], count: top[1] } : null;
+  })();
+
+  const chorusSectionCount = (() => {
+    let n = 0; let inChorus = false;
+    syncedLines.forEach((l) => {
+      if (l.type === "chorus" && !inChorus) { n++; inChorus = true; }
+      else if (l.type !== "chorus") inChorus = false;
+    });
+    return n;
+  })();
 
   // ── Musical DNA dimensions ──
   const arousal = insights.mood.arousal ?? insights.mood.energy * 0.85;
@@ -1154,6 +1221,63 @@ export function SongDetail({
                 </div>
               </GlassCard>
             )}
+
+            {/* Songwriting Analysis */}
+            {!insights.loading && totalLines > 0 && (
+              <GlassCard className="p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <Pen className="h-3.5 w-3.5 text-white/30" />
+                  <h3 className="text-[10px] uppercase tracking-[0.4em] text-white/40">Songwriting</h3>
+                </div>
+                <div className="space-y-4">
+                  {/* Reading level + stats row */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.3em] text-white/30 mb-1">Lyrical Complexity</p>
+                      <span className={`text-sm font-light tracking-wide ${readingColor}`}>{readingLevel}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] uppercase tracking-[0.3em] text-white/30 mb-1">Avg Word Length</p>
+                      <span className="text-sm font-light text-white/60">{avgWordLength > 0 ? avgWordLength.toFixed(1) : "–"} chars</span>
+                    </div>
+                  </div>
+
+                  {/* Most repeated line */}
+                  {mostRepeatedLine && (
+                    <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3">
+                      <p className="text-[9px] uppercase tracking-[0.3em] text-white/30 mb-2">Most Repeated Line ×{mostRepeatedLine.count}</p>
+                      <p className="text-sm font-light text-white/70 italic leading-relaxed">"{mostRepeatedLine.text}"</p>
+                    </div>
+                  )}
+
+                  {/* Chorus structure */}
+                  {chorusSectionCount > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[10px] uppercase tracking-[0.3em] text-white/30">Chorus sections</span>
+                      <span className="text-white/55 tracking-wider">{chorusSectionCount}×</span>
+                    </div>
+                  )}
+
+                  {/* Uniqueness ratio */}
+                  {wordCount > 0 && (
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <p className="text-[10px] uppercase tracking-[0.3em] text-white/30">Vocabulary Uniqueness</p>
+                        <span className="text-xs text-white/40">{Math.round((uniqueWords / wordCount) * 100)}%</span>
+                      </div>
+                      <div className="h-1 w-full overflow-hidden rounded-full bg-white/8">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-violet-400/50 to-indigo-400/70"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.round((uniqueWords / wordCount) * 100)}%` }}
+                          transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </GlassCard>
+            )}
           </motion.main>
 
           {/* ════ RIGHT: Song Insights ════ */}
@@ -1381,6 +1505,117 @@ export function SongDetail({
             )}
           </motion.aside>
         </div>
+
+        {/* ── About This Song — Mini Wiki ── */}
+        {(wiki.loading || wiki.songExtract || wiki.artistExtract) && (
+          <motion.section
+            className="mt-8"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+          >
+            <GlassCard className="p-6 md:p-8">
+              {/* Header */}
+              <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <BookOpen className="h-4 w-4 text-white/35" />
+                  <h2 className="text-[10px] uppercase tracking-[0.4em] text-white/40">About This Song</h2>
+                </div>
+                {wiki.songWikiUrl && (
+                  <a
+                    href={wiki.songWikiUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[10px] tracking-widest text-white/25 hover:text-white/50 transition-colors"
+                  >
+                    <span>Wikipedia</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+
+              {wiki.loading ? (
+                <div className="space-y-3 animate-pulse">
+                  <div className="h-3 w-full rounded-full bg-white/5" />
+                  <div className="h-3 w-5/6 rounded-full bg-white/5" />
+                  <div className="h-3 w-4/6 rounded-full bg-white/5" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-[1fr_1px_320px]">
+                  {/* Song extract */}
+                  <div className="space-y-4">
+                    {wiki.songDescription && (
+                      <p className="text-[10px] uppercase tracking-[0.35em] text-indigo-300/50">{wiki.songDescription}</p>
+                    )}
+                    {wiki.songExtract ? (
+                      <p className="text-sm font-light leading-relaxed text-white/65 tracking-wide">{wiki.songExtract}</p>
+                    ) : (
+                      <p className="text-sm text-white/30 italic">No Wikipedia article found for this song.</p>
+                    )}
+
+                    {/* Key metadata pills */}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {song.genre && (
+                        <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">
+                          {song.genre}
+                        </span>
+                      )}
+                      {song.album && song.album !== song.title && (
+                        <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">
+                          {song.album}
+                        </span>
+                      )}
+                      {trackDetails.artistCountry && (
+                        <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">
+                          {countryFlag(trackDetails.artistCountry)} {COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry}
+                        </span>
+                      )}
+                      {trackDetails.genres.slice(0, 2).map((g) => (
+                        <span key={g} className="rounded-full border border-indigo-400/15 bg-indigo-400/5 px-3 py-1 text-[10px] tracking-widest text-indigo-300/50">
+                          {g}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="hidden md:block bg-white/6 w-px" />
+
+                  {/* Artist section */}
+                  {wiki.artistExtract && (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        {wiki.artistThumbnail && (
+                          <img
+                            src={wiki.artistThumbnail}
+                            alt={song.artist}
+                            className="h-14 w-14 shrink-0 rounded-2xl object-cover opacity-80"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <p className="text-[10px] uppercase tracking-[0.35em] text-white/35">About the artist</p>
+                            {wiki.artistWikiUrl && (
+                              <a href={wiki.artistWikiUrl} target="_blank" rel="noopener noreferrer"
+                                className="text-white/20 hover:text-white/45 transition-colors">
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                            )}
+                          </div>
+                          <p className="text-sm font-light text-white/80 tracking-wide">{song.artist}</p>
+                          {wiki.artistDescription && (
+                            <p className="text-[10px] text-white/35 tracking-wide mt-0.5">{wiki.artistDescription}</p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm font-light leading-relaxed text-white/55 tracking-wide">{wiki.artistExtract}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </GlassCard>
+          </motion.section>
+        )}
 
         {/* ── World Listener Map ── */}
         <motion.section
