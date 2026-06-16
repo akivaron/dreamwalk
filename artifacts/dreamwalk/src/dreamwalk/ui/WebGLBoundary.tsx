@@ -9,22 +9,29 @@ interface State {
   failed: boolean;
 }
 
+const BENIGN_PATTERNS = [
+  /Converting circular structure to JSON/i,
+  /Error creating WebGL context/i,
+  /WebGLRenderer/i,
+  /THREE\.WebGL/i,
+  /Context Lost/i,
+  /Invalid hook call/i,
+  /CanvasImpl/i,
+];
+
+function isBenignWebGLError(error: Error): boolean {
+  const text = `${error.message ?? ""}\n${error.stack ?? ""}`;
+  return BENIGN_PATTERNS.some((re) => re.test(text));
+}
+
 function detectWebGL(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const canvas = document.createElement("canvas");
-    const gl2 = canvas.getContext("webgl2");
-    const gl1 = canvas.getContext("webgl");
-    const glExp = canvas.getContext("experimental-webgl");
-    const gl = gl2 ?? gl1 ?? glExp;
-    
-    console.log("WebGL detection probe results:", {
-      hasWebGL2: !!gl2,
-      hasWebGL1: !!gl1,
-      hasExperimental: !!glExp,
-      selectedContext: gl ? gl.constructor.name : null
-    });
-
+    const gl =
+      canvas.getContext("webgl2") ??
+      canvas.getContext("webgl") ??
+      canvas.getContext("experimental-webgl");
     if (!gl) return false;
     // Release the probe context immediately. Holding an extra WebGL context can
     // cause a constrained sandbox to lose an existing context when the real
@@ -33,8 +40,7 @@ function detectWebGL(): boolean {
       .getExtension("WEBGL_lose_context")
       ?.loseContext();
     return true;
-  } catch (e) {
-    console.error("Error during WebGL detection:", e);
+  } catch {
     return false;
   }
 }
@@ -46,8 +52,12 @@ export class WebGLBoundary extends Component<Props, State> {
     return { failed: true };
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("DreamWalk scene failed to render", error, info);
+  componentDidCatch(error: Error, _info: ErrorInfo): void {
+    // Only log genuinely unexpected errors — benign WebGL/sandbox failures are
+    // handled by the fallback UI and do not need a console trace.
+    if (!isBenignWebGLError(error)) {
+      console.error("DreamWalk scene failed to render", error);
+    }
   }
 
   render(): ReactNode {
