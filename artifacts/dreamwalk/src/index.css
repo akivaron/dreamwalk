@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Cinzel", serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #04050a;
+  color: #f5efe0;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-display {
+  font-family: "Cinzel", serif;
+}
+
+canvas {
+  display: block;
+  touch-action: none;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.2);
+}

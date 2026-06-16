@@ -1,0 +1,26 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "2bCE-EZEINwlDbHA5kjs5"
+uri = "file://artifacts/dreamwalk/public/audio/ascension.mp3"
+type = "audio"
+title = "dreamwalk ascension"
+
+[[outputs]]
+id = "Y0xF-IydMxsc8u85PTShw"
+uri = "file://artifacts/dreamwalk/public/audio/aurora-dreams.mp3"
+type = "audio"
+title = "dreamwalk aurora"
+
+[[outputs]]
+id = "WpTZXhoDQxTj8T3MXCFWN"
+uri = "file://artifacts/dreamwalk/public/audio/golden-hour.mp3"
+type = "audio"
+title = "dreamwalk golden"
+
+[[outputs]]
+id = "OZD4bL_h5TNq9lx3UcLnp"
+uri = "file://artifacts/dreamwalk/public/audio/moonlit-tide.mp3"
+type = "audio"
+title = "dreamwalk ocean"

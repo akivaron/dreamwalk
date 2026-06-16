@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "DreamWalk"
+version = "1.0.0"
+id = "artifacts/dreamwalk"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18947
+
+[services.development]
+run = "pnpm --filter @workspace/dreamwalk run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dreamwalk", "run", "build" ]
+publicDir = "artifacts/dreamwalk/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18947"
+BASE_PATH = "/"
