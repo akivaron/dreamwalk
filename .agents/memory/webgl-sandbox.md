@@ -1,17 +1,25 @@
 ---
-name: WebGL unavailable in Replit env browsers
-description: The preview and test browsers in this environment cannot create a WebGL context, so 3D/canvas-GPU apps can only be verified at the DOM layer here.
+name: WebGL unavailable in Replit preview/test browsers
+description: Why the 3D scene can't render in-env and how DreamWalk degrades gracefully
 ---
 
-Both the Replit app-preview screenshot browser and the Playwright testing subagent browser run sandboxed without GPU access. Any WebGL app (three.js / React Three Fiber / regl / babylon) fails to create a context with errors like:
+# WebGL is unavailable in Replit's preview + Playwright browsers
 
-- `THREE.WebGLRenderer: Error creating WebGL context.`
-- `Could not create a WebGL context ... ErrorMessage = BindToCurrentSequence failed`
-- Vite runtime-error overlay: `[plugin:runtime-error-plugin] Error creating WebGL context.`
+The Replit preview iframe browser and the Playwright test browsers run sandboxed
+**without GPU/WebGL** ("BindToCurrentSequence failed: Error creating WebGL context").
+Any React Three Fiber `<Canvas>` will fail to initialize there. It renders fine in
+real user browsers.
 
-**Why:** the sandbox has no usable GPU and no software GL fallback. This is an environment limitation, NOT a bug in the app.
+## The crash this caused (and the fix)
+**Rule:** Detect WebGL support *before* mounting the R3F `<Canvas>`; if absent, render
+a fallback and never mount the Canvas. An error boundary alone is NOT enough.
 
-**How to apply:**
-- Do not treat a WebGL-context failure in the preview/test browser as a real defect. Verify the 2D/DOM layers (menus, HUD, overlays) instead, and confirm the 3D code is correct by typecheck + code review.
-- Downstream noise to ignore in this case: "Invalid hook call / more than one copy of React", "Converting circular structure to JSON", "THREE.Texture: Unable to serialize" — these cascade from the reconciler unwinding after the context failure / the dev overlay trying to serialize the error. Confirm React is single-copy via `pnpm why react` before chasing the hook-call message.
-- Wrap the Canvas in a React error boundary so real browsers without WebGL get a graceful fallback instead of a crash.
+**Why:** When the Canvas throws on context creation, a React error boundary catches the
+*render* error, but a separate **window-level unhandled error** still fires — something
+serializes the Three.js fiber tree and throws `Converting circular structure to JSON`
+(plus a spurious `Invalid hook call` / multiple-React message). That unhandled error
+trips Replit's runtime-error overlay, which the user sees as a hard crash.
+
+**How to apply:** `WebGLBoundary` checks `canvas.getContext('webgl2'|'webgl'|...)` in its
+initial state. If null → show fallback immediately, so the throw/cascade never happens.
+Keep `getDerivedStateFromError` as a backstop for real-browser context loss.

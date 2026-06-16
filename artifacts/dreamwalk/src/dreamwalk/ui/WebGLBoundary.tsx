@@ -9,8 +9,22 @@ interface State {
   failed: boolean;
 }
 
+function detectWebGL(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    const gl =
+      canvas.getContext("webgl2") ??
+      canvas.getContext("webgl") ??
+      canvas.getContext("experimental-webgl");
+    return Boolean(gl);
+  } catch {
+    return false;
+  }
+}
+
 export class WebGLBoundary extends Component<Props, State> {
-  state: State = { failed: false };
+  state: State = { failed: !detectWebGL() };
 
   static getDerivedStateFromError(): State {
     return { failed: true };
