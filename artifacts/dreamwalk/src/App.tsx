@@ -50,9 +50,9 @@ export default function App() {
     songMode === "dream" && dream.context.song?.artworkUrl
       ? dream.context.song.artworkUrl
       : undefined;
-  const activeAudioFile =
-    songMode === "dream" && dream.context.song?.previewUrl
-      ? dream.context.song.previewUrl
+  const activeAudioFile: string | null =
+    songMode === "dream"
+      ? (dream.context.song?.previewUrl ?? null)
       : curatedTrack.file;
 
   const clearTransition = useCallback(() => {
@@ -147,7 +147,7 @@ export default function App() {
       playNarration();
     }
 
-    void engine.loadAndPlay(activeAudioFile);
+    if (activeAudioFile) void engine.loadAndPlay(activeAudioFile);
     transitionTimer.current = setTimeout(() => {
       transitionTimer.current = null;
       setPhase((p) => (p === "entering" ? "experience" : p));

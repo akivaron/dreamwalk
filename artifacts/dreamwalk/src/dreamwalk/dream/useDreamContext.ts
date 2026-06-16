@@ -4,7 +4,7 @@ import type { DreamSong } from "./types";
 import { fetchLyrics } from "./api/lyrics";
 import { generateNarration } from "./api/narration";
 import { fetchMoodFromCyanite } from "./api/mood";
-import { getFFTStemData } from "./api/stems";
+import { fetchAndApplyStems, getFFTStemData } from "./api/stems";
 import { fetchItunesTrending, getSessionTrending, recordPlay } from "./trendingStore";
 import {
   extractKeywords,
@@ -159,6 +159,18 @@ export function useDreamContext() {
       };
 
       setState({ context, loading: false, loadingStep: "", error: null, ready: true });
+
+      // Background: LALAL.AI stem separation (updates stems source when complete)
+      if (song.previewUrl && !ctrl.signal.aborted) {
+        void fetchAndApplyStems(song.previewUrl).then((lalalStems) => {
+          if (!ctrl.signal.aborted && lalalStems) {
+            setState((prev) => ({
+              ...prev,
+              context: { ...prev.context, stems: lalalStems },
+            }));
+          }
+        }).catch(() => { /* graceful degradation — stays as fft */ });
+      }
     } catch (err) {
       if (ctrl.signal.aborted) return;
       setState((prev) => ({
