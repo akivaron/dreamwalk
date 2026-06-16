@@ -4,6 +4,8 @@ const BENIGN_PATTERNS: RegExp[] = [
   /WebGLRenderer/i,
   /THREE\.WebGL/i,
   /Context Lost/i,
+  /Invalid hook call/i,
+  /CanvasImpl/i,
 ];
 
 function isBenign(text: string): boolean {

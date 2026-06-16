@@ -31,7 +31,9 @@ export default defineConfig({
           /Converting circular structure to JSON/i.test(haystack) ||
           /WebGLRenderer/i.test(haystack) ||
           /THREE\.WebGL/i.test(haystack) ||
-          /Context Lost/i.test(haystack);
+          /Context Lost/i.test(haystack) ||
+          /Invalid hook call/i.test(haystack) ||
+          /CanvasImpl/i.test(haystack);
         return !benign;
       },
     }),

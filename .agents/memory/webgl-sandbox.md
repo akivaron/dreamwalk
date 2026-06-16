@@ -22,18 +22,21 @@ fires on the uncaught exception and regenerates the "artifact crashed" report. A
 the WebGL probe context (`WEBGL_lose_context.loseContext()`) so a leaked second context
 doesn't itself trigger "Context Lost" in constrained sandboxes.
 
-**Why:** Even with a `WebGLBoundary` that fails closed, two unavoidable window-level
+**Why:** Even with a `WebGLBoundary` that fails closed, multiple unavoidable window-level
 errors still fire in a no-GPU browser: `Error creating WebGL context` (thrown by THREE's
-`WebGLRenderer`, re-emitted to `window` by React's dev `reportError` after the boundary
-catches it) and `Converting circular structure to JSON` (dev tooling serializing the
-Three.js fiber tree). Both reach `@replit/vite-plugin-runtime-error-modal` → Vite error
-overlay → looks like a hard crash. A client-side capture-phase `window` 'error' guard
-only stops one message and is fragile (context-lost errors fire repeatedly, async). The
-server-side `filter(error)=>!benign` is the robust, centralized fix: returning false
-drops the overlay, the `[RUNTIME_ERROR]` server log, AND the parent postMessage in one
-place, while all other errors still surface. Match on message+stack for: `Error creating
-WebGL context`, `Converting circular structure to JSON`, `WebGLRenderer`, `THREE.WebGL`,
-`Context Lost`. No production effect (plugin is dev-only).
+`WebGLRenderer`), `Converting circular structure to JSON` (dev tooling serializing the
+Three.js fiber tree), `Invalid hook call` (React's internal `CanvasImpl` error during
+error-boundary recovery), and `CanvasImpl` (the R3F component that throws during recovery).
+All reach `@replit/vite-plugin-runtime-error-modal` → Vite error overlay → looks like a
+hard crash. A client-side capture-phase `window` 'error' guard only stops one message and
+is fragile (context-lost errors fire repeatedly, async). The server-side `filter` is the
+robust, centralized fix: returning false drops the overlay, the `[RUNTIME_ERROR]` server
+log, AND the parent postMessage in one place, while all other errors still surface. The
+client-side guard is also needed because Replit's browser-console crash detection is
+separate from the plugin and still fires on the raw uncaught exception. Match on
+message+stack for: `Error creating WebGL context`, `Converting circular structure to JSON`,
+`WebGLRenderer`, `THREE.WebGL`, `Context Lost`, `Invalid hook call`, `CanvasImpl`.
+No production effect (plugin is dev-only).
 
 **Also:** the window errors still appear in browser-console *log capture* (refresh_all_logs)
 — that's the capture mechanism recording window events, NOT a visible crash. Verify the
