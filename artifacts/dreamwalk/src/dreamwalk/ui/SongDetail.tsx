@@ -108,6 +108,212 @@ function useSongInsights(song: DreamSong): SongInsights {
   return ins;
 }
 
+// ─── Track Details hook (Musixmatch analytics) ───────────────────────────────
+
+interface TrackDetails {
+  trackRating: number | null;
+  trackLength: number | null;
+  explicit: boolean;
+  numFavourite: number | null;
+  genres: string[];
+  artistCountry: string | null;
+  artistGenres: string[];
+  loading: boolean;
+}
+
+function useTrackDetails(song: DreamSong): TrackDetails {
+  const [details, setDetails] = useState<TrackDetails>({
+    trackRating: null, trackLength: null, explicit: false,
+    numFavourite: null, genres: [], artistCountry: null,
+    artistGenres: [], loading: true,
+  });
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const url = `/api/track-details?${new URLSearchParams({ artist: song.artist, title: song.title })}`;
+        const r = await fetch(url, { signal: AbortSignal.timeout(9000) });
+        if (!r.ok || cancelled) return;
+        const data = (await r.json()) as Partial<TrackDetails>;
+        if (!cancelled) setDetails({ ...(data as TrackDetails), loading: false });
+      } catch {
+        if (!cancelled) setDetails((d) => ({ ...d, loading: false }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [song.id, song.artist, song.title]);
+  return details;
+}
+
+// ─── Country helpers ──────────────────────────────────────────────────────────
+
+function countryFlag(code: string): string {
+  if (!code || code.length !== 2) return "🌍";
+  return [...code.toUpperCase()].map((c) => String.fromCodePoint(c.charCodeAt(0) + 127397)).join("");
+}
+
+const COUNTRY_NAMES: Record<string, string> = {
+  US:"United States",GB:"United Kingdom",KR:"South Korea",JP:"Japan",BR:"Brazil",
+  MX:"Mexico",CA:"Canada",AU:"Australia",FR:"France",DE:"Germany",SE:"Sweden",
+  NG:"Nigeria",IN:"India",CO:"Colombia",PR:"Puerto Rico",JM:"Jamaica",ZA:"South Africa",
+  IT:"Italy",ES:"Spain",AR:"Argentina",CL:"Chile",NZ:"New Zealand",IE:"Ireland",
+  NO:"Norway",DK:"Denmark",FI:"Finland",NL:"Netherlands",BE:"Belgium",PT:"Portugal",
+  TW:"Taiwan",HK:"Hong Kong",ID:"Indonesia",PH:"Philippines",TH:"Thailand",
+  MY:"Malaysia",SG:"Singapore",EG:"Egypt",AE:"UAE",SA:"Saudi Arabia",PK:"Pakistan",
+  RU:"Russia",PL:"Poland",TR:"Turkey",CN:"China",VE:"Venezuela",PE:"Peru",EC:"Ecuador",
+};
+
+// ─── World Listener Map ────────────────────────────────────────────────────────
+
+interface ListenerHub {
+  name: string; country: string;
+  svgX: number; svgY: number;
+  base: number; boostKeys: string[];
+}
+
+const LISTENER_HUBS: ListenerHub[] = [
+  { name: "New York",      country: "US", svgX: 177, svgY:  82, base: 0.90, boostKeys: ["us","hip-hop","pop","r&b","rap","country"] },
+  { name: "Los Angeles",   country: "US", svgX: 103, svgY:  93, base: 0.85, boostKeys: ["us","pop","hip-hop","r&b","rap"] },
+  { name: "London",        country: "GB", svgX: 300, svgY:  64, base: 0.80, boostKeys: ["gb","uk","pop","electronic","afrobeats"] },
+  { name: "São Paulo",     country: "BR", svgX: 222, svgY: 189, base: 0.75, boostKeys: ["br","brazil","reggaeton","latin"] },
+  { name: "Tokyo",         country: "JP", svgX: 533, svgY:  90, base: 0.75, boostKeys: ["jp","japan","j-pop","anime","k-pop"] },
+  { name: "Seoul",         country: "KR", svgX: 511, svgY:  87, base: 0.70, boostKeys: ["kr","korea","k-pop","k pop"] },
+  { name: "Mumbai",        country: "IN", svgX: 421, svgY: 118, base: 0.65, boostKeys: ["in","india","bollywood","pop"] },
+  { name: "Paris",         country: "FR", svgX: 304, svgY:  68, base: 0.70, boostKeys: ["fr","france","pop","electronic"] },
+  { name: "Berlin",        country: "DE", svgX: 322, svgY:  62, base: 0.65, boostKeys: ["de","germany","electronic","techno","edm"] },
+  { name: "Mexico City",   country: "MX", svgX: 135, svgY: 118, base: 0.65, boostKeys: ["mx","mexico","reggaeton","latin","pop"] },
+  { name: "Jakarta",       country: "ID", svgX: 478, svgY: 160, base: 0.60, boostKeys: ["id","indonesia","pop","k-pop"] },
+  { name: "Sydney",        country: "AU", svgX: 552, svgY: 207, base: 0.60, boostKeys: ["au","australia","pop","electronic"] },
+  { name: "Toronto",       country: "CA", svgX: 168, svgY:  77, base: 0.55, boostKeys: ["ca","canada","pop","hip-hop"] },
+  { name: "Lagos",         country: "NG", svgX: 306, svgY: 139, base: 0.50, boostKeys: ["ng","nigeria","afrobeats","afropop"] },
+  { name: "Bangkok",       country: "TH", svgX: 468, svgY: 127, base: 0.55, boostKeys: ["th","thailand","pop","k-pop"] },
+  { name: "Buenos Aires",  country: "AR", svgX: 203, svgY: 208, base: 0.50, boostKeys: ["ar","argentina","reggaeton","latin","tango"] },
+  { name: "Dubai",         country: "AE", svgX: 392, svgY: 108, base: 0.50, boostKeys: ["ae","arabic","pop","arabic pop"] },
+  { name: "Stockholm",     country: "SE", svgX: 330, svgY:  51, base: 0.50, boostKeys: ["se","sweden","pop","electronic","edm"] },
+  { name: "Manila",        country: "PH", svgX: 502, svgY: 126, base: 0.50, boostKeys: ["ph","philippines","pop","k-pop"] },
+  { name: "Cairo",         country: "EG", svgX: 352, svgY: 100, base: 0.45, boostKeys: ["eg","egypt","arabic"] },
+];
+
+const NEARBY: Record<string, string[]> = {
+  US:["CA","GB","AU"],  GB:["US","AU","CA","IE","SE","DE","FR"],
+  KR:["JP","PH","TH","ID"],  JP:["KR"],  BR:["AR","MX"],  MX:["BR","AR"],
+  SE:["DE","NO","DK","FI"],  FR:["BE","CH","DE"],  DE:["AT","CH","SE","FR"],
+};
+
+function calcHubIntensity(hub: ListenerHub, artistCountry: string | null, allGenres: string[]): number {
+  let s = hub.base;
+  const lc = (artistCountry ?? "").toUpperCase();
+  const lg = allGenres.map((g) => g.toLowerCase());
+  if (lc && lc === hub.country) s = Math.min(1, s + 0.38);
+  if ((NEARBY[lc] ?? []).includes(hub.country)) s = Math.min(1, s + 0.14);
+  if (hub.boostKeys.some((k) => lg.some((g) => g.includes(k)))) s = Math.min(1, s + 0.16);
+  return s;
+}
+
+const CONTINENT_POLYGONS = [
+  { id: "na", points: "20,50 75,33 197,33 230,50 212,72 167,108 155,123 117,112 93,70 58,53" },
+  { id: "sa", points: "172,133 195,133 242,158 233,188 205,205 187,240 180,240 180,183 170,150" },
+  { id: "eu", points: "285,85 285,77 292,52 325,32 347,42 400,58 347,78 343,88 327,88 292,90" },
+  { id: "af", points: "278,90 358,98 385,133 367,167 347,208 330,208 320,158 313,143 272,125" },
+  { id: "as", points: "343,80 387,65 455,30 608,42 570,63 517,98 492,148 433,137 395,113 360,88" },
+  { id: "au", points: "490,185 525,175 543,180 552,215 530,212 492,207" },
+];
+
+function WorldListenerMap({
+  artistCountry, genres, artistGenres,
+}: { artistCountry: string | null; genres: string[]; artistGenres: string[] }) {
+  const allGenres = useMemo(() => [...genres, ...artistGenres], [genres.join(","), artistGenres.join(",")]);
+  const hubs = useMemo(
+    () => LISTENER_HUBS.map((h) => ({ ...h, intensity: calcHubIntensity(h, artistCountry, allGenres) }))
+      .sort((a, b) => b.intensity - a.intensity),
+    [artistCountry, allGenres.join(",")],
+  );
+  const top5 = hubs.slice(0, 5);
+  const homeHub = artistCountry ? hubs.find((h) => h.country === artistCountry.toUpperCase()) : null;
+
+  return (
+    <div className="space-y-5">
+      {/* SVG map */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-[#060a14]">
+        <svg viewBox="0 0 600 280" className="w-full" style={{ display: "block" }}>
+          <rect width="600" height="280" fill="#060a14" />
+          {/* Grid lines */}
+          {[100,200,300,400,500].map((x) => (
+            <line key={`v${x}`} x1={x} y1={0} x2={x} y2={280} stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+          ))}
+          {[70,140,210].map((y) => (
+            <line key={`h${y}`} x1={0} y1={y} x2={600} y2={y} stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" />
+          ))}
+          {/* Continents */}
+          {CONTINENT_POLYGONS.map((c) => (
+            <polygon key={c.id} points={c.points} fill="#1a2540" stroke="rgba(255,255,255,0.07)" strokeWidth="0.75" />
+          ))}
+          {/* Glow gradients */}
+          <defs>
+            {hubs.map((h) => (
+              <radialGradient key={h.name} id={`grd${h.svgX}${h.svgY}`} cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#818cf8" stopOpacity={h.intensity * 0.65} />
+                <stop offset="100%" stopColor="#818cf8" stopOpacity="0" />
+              </radialGradient>
+            ))}
+          </defs>
+          {/* Hub dots */}
+          {hubs.map((h) => {
+            const r = 3 + h.intensity * 9;
+            return (
+              <g key={h.name}>
+                <circle cx={h.svgX} cy={h.svgY} r={r * 3.5} fill={`url(#grd${h.svgX}${h.svgY})`} />
+                <circle cx={h.svgX} cy={h.svgY} r={r}
+                  fill="rgba(129,140,248,0.55)" fillOpacity={0.3 + h.intensity * 0.7}
+                  stroke="rgba(165,180,252,0.6)" strokeWidth="0.75" />
+                {h.intensity > 0.82 && (
+                  <text x={h.svgX} y={h.svgY - r - 2} textAnchor="middle" fontSize="6"
+                    fill="rgba(255,255,255,0.55)" fontFamily="system-ui">{h.name}</text>
+                )}
+              </g>
+            );
+          })}
+          {/* Home ring */}
+          {homeHub && (
+            <circle cx={homeHub.svgX} cy={homeHub.svgY}
+              r={3 + homeHub.intensity * 9 + 6}
+              fill="none" stroke="rgba(250,204,21,0.55)" strokeWidth="1.5" strokeDasharray="3 2" />
+          )}
+        </svg>
+        <div className="absolute bottom-2 right-3 flex gap-3">
+          <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-indigo-400/80" /><span className="text-[8px] tracking-widest text-white/30">Listeners</span></span>
+          {homeHub && <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full border border-yellow-400/50" /><span className="text-[8px] tracking-widest text-white/30">Home</span></span>}
+        </div>
+      </div>
+      {/* Top 5 */}
+      <div>
+        <p className="mb-2 text-[10px] uppercase tracking-[0.3em] text-white/35">Top Listening Cities</p>
+        <div className="space-y-2">
+          {top5.map((h, i) => (
+            <div key={h.name} className="flex items-center gap-2">
+              <span className="w-3 shrink-0 text-[10px] text-white/25">{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-[11px] tracking-wide text-white/65">{h.name}</span>
+                  <span className="text-[10px] text-white/40">{Math.round(h.intensity * 100)}%</span>
+                </div>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-white/8">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-400/60 to-violet-400/60"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${h.intensity * 100}%` }}
+                    transition={{ duration: 0.8, delay: i * 0.1, ease: "easeOut" }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Glass Card ───────────────────────────────────────────────────────────────
 
 function GlassCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
@@ -393,7 +599,15 @@ export function SongDetail({
   const [isSaved, setIsSaved] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Fix scroll — body has overflow:hidden for the 3D experience
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "auto";
+    return () => { document.body.style.overflow = prev || "hidden"; };
+  }, []);
+
   const insights = useSongInsights(song);
+  const trackDetails = useTrackDetails(song);
   const largeArt = getLargeArtwork(song.artworkUrl);
 
   // ── Audio controls ──
@@ -590,6 +804,78 @@ export function SongDetail({
                 </div>
               )}
             </GlassCard>
+
+            {/* Musixmatch analytics */}
+            {!trackDetails.loading && (trackDetails.trackRating !== null || trackDetails.artistCountry) && (
+              <GlassCard className="p-5 flex flex-col gap-3">
+                <h4 className="text-[10px] uppercase tracking-[0.4em] text-white/40">Analytics</h4>
+
+                {trackDetails.artistCountry && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/45 tracking-wide">Origin</span>
+                    <span className="flex items-center gap-1.5 text-[11px] text-white/70 tracking-wide">
+                      <span>{countryFlag(trackDetails.artistCountry)}</span>
+                      <span>{COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry}</span>
+                    </span>
+                  </div>
+                )}
+
+                {trackDetails.trackRating !== null && (
+                  <div>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-xs text-white/45 tracking-wide">Popularity</span>
+                      <span className="text-[11px] text-white/60">{trackDetails.trackRating}/100</span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-400/50 to-orange-400/70"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${trackDetails.trackRating}%` }}
+                        transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {trackDetails.trackLength !== null && trackDetails.trackLength > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/45 tracking-wide">Full Length</span>
+                    <span className="text-[11px] text-white/60 tracking-wide">{formatTime(trackDetails.trackLength)}</span>
+                  </div>
+                )}
+
+                {trackDetails.numFavourite !== null && trackDetails.numFavourite > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/45 tracking-wide">Favourites</span>
+                    <span className="text-[11px] text-white/60 tracking-wide">
+                      {trackDetails.numFavourite >= 1000
+                        ? `${(trackDetails.numFavourite / 1000).toFixed(1)}k`
+                        : String(trackDetails.numFavourite)}
+                    </span>
+                  </div>
+                )}
+
+                {trackDetails.explicit && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-white/45 tracking-wide">Content</span>
+                    <span className="rounded border border-red-400/30 bg-red-500/10 px-1.5 py-0.5 text-[9px] tracking-widest text-red-400/80">EXPLICIT</span>
+                  </div>
+                )}
+
+                {trackDetails.genres.length > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-xs text-white/45 tracking-wide">MX Genres</p>
+                    <div className="flex flex-wrap gap-1">
+                      {trackDetails.genres.slice(0, 4).map((g) => (
+                        <span key={g} className="rounded-full border border-amber-400/15 bg-amber-500/8 px-2 py-0.5 text-[10px] text-amber-300/60 tracking-wide">
+                          {g}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </GlassCard>
+            )}
 
             {/* Spotify / Apple links */}
             <GlassCard className="p-5 flex flex-col gap-2">
@@ -1058,6 +1344,31 @@ export function SongDetail({
             )}
           </motion.aside>
         </div>
+
+        {/* ── World Listener Map ── */}
+        <motion.section
+          className="mt-8"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.35 }}
+        >
+          <GlassCard className="p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-[10px] uppercase tracking-[0.4em] text-white/40">Global Listeners</h2>
+              {trackDetails.artistCountry && (
+                <span className="flex items-center gap-1.5 text-xs text-white/50">
+                  <span>{countryFlag(trackDetails.artistCountry)}</span>
+                  <span className="tracking-wide">{COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry} artist</span>
+                </span>
+              )}
+            </div>
+            <WorldListenerMap
+              artistCountry={trackDetails.artistCountry}
+              genres={[...trackDetails.genres, ...(insights.mood.genreTags ?? []), song.genre].filter(Boolean)}
+              artistGenres={trackDetails.artistGenres}
+            />
+          </GlassCard>
+        </motion.section>
 
         {/* ── Discovery section ── */}
         {trends.length > 0 && (

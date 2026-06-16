@@ -610,4 +610,88 @@ router.post("/narrate", async (req: Request, res: Response) => {
   }
 });
 
+// ─── /api/track-details — Musixmatch track + artist metadata ─────────────────
+
+router.get("/track-details", async (req: Request, res: Response) => {
+  const artist = String(req.query["artist"] ?? "").trim();
+  const title = String(req.query["title"] ?? "").trim();
+  const mxKey = process.env["MUSIXMATCH_KEY"];
+
+  if (!artist || !title) { res.status(400).json({ error: "artist and title required" }); return; }
+  if (!mxKey) { res.status(503).json({ error: "Musixmatch not configured" }); return; }
+
+  try {
+    const BASE = "https://api.musixmatch.com/ws/1.1";
+
+    const searchUrl = `${BASE}/track.search?` + new URLSearchParams({
+      q_track: title, q_artist: artist, page_size: "1",
+      s_track_rating: "desc", apikey: mxKey,
+    });
+
+    const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(7000) });
+    if (!searchRes.ok) { res.status(502).json({ error: "mx search failed" }); return; }
+
+    const searchData = (await searchRes.json()) as {
+      message: {
+        header: { status_code: number };
+        body: {
+          track_list: Array<{
+            track: {
+              track_id: number; artist_id: number;
+              track_rating: number; track_length: number;
+              explicit: number; num_favourite: number;
+              primary_genres?: { music_genre_list: Array<{ music_genre: { music_genre_name: string } }> };
+            };
+          }>;
+        };
+      };
+    };
+
+    const track = searchData.message?.body?.track_list?.[0]?.track;
+    if (!track) { res.status(404).json({ error: "track not found" }); return; }
+
+    let artistCountry: string | null = null;
+    let artistGenres: string[] = [];
+
+    try {
+      const artistRes = await fetch(
+        `${BASE}/artist.get?` + new URLSearchParams({ artist_id: String(track.artist_id), apikey: mxKey }),
+        { signal: AbortSignal.timeout(6000) },
+      );
+      if (artistRes.ok) {
+        const artistData = (await artistRes.json()) as {
+          message: {
+            body: {
+              artist: {
+                artist_country: string;
+                primary_genres?: { music_genre_list: Array<{ music_genre: { music_genre_name: string } }> };
+              };
+            };
+          };
+        };
+        const a = artistData.message?.body?.artist;
+        if (a) {
+          artistCountry = a.artist_country || null;
+          artistGenres = a.primary_genres?.music_genre_list?.map((g) => g.music_genre.music_genre_name).filter(Boolean) ?? [];
+        }
+      }
+    } catch { /* artist optional */ }
+
+    const trackGenres = track.primary_genres?.music_genre_list?.map((g) => g.music_genre.music_genre_name).filter(Boolean) ?? [];
+
+    res.json({
+      trackRating: track.track_rating ?? null,
+      trackLength: track.track_length ?? null,
+      explicit: track.explicit === 1,
+      numFavourite: track.num_favourite ?? null,
+      genres: trackGenres,
+      artistCountry: artistCountry,
+      artistGenres: artistGenres,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: `track-details failed: ${msg.slice(0, 200)}` });
+  }
+});
+
 export default router;
