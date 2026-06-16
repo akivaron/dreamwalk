@@ -45,7 +45,28 @@ export function recordPlay(song: { id: string; title: string; artist: string; ar
 export function getSessionTrending(): TrendingTrack[] {
   return loadSession()
     .slice(0, 8)
-    .map((e) => ({ ...e }));
+    .map((e) => ({ ...e, source: "session" as const }));
+}
+
+interface SongstatsChart {
+  track_id: string;
+  track_name: string;
+  artist_name: string;
+  cover_url?: string;
+  streams?: number;
+}
+
+interface AppleResult {
+  id: string;
+  name: string;
+  artistName: string;
+  artworkUrl100?: string;
+}
+
+interface TrendingResponse {
+  source: "songstats" | "apple";
+  chart?: SongstatsChart[];
+  feed?: { results?: AppleResult[] };
 }
 
 export async function fetchItunesTrending(): Promise<TrendingTrack[]> {
@@ -53,15 +74,30 @@ export async function fetchItunesTrending(): Promise<TrendingTrack[]> {
     const API_BASE = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/";
     const res = await fetch(`${API_BASE}api/trending`, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return [];
-    const data = (await res.json()) as {
-      feed: { results: Array<{ id: string; name: string; artistName: string; artworkUrl100: string }> };
-    };
-    return (data.feed?.results ?? []).map((r) => ({
+
+    const data = (await res.json()) as TrendingResponse;
+
+    // Songstats chart
+    if (data.source === "songstats" && data.chart?.length) {
+      return data.chart.map((item) => ({
+        id: item.track_id,
+        title: item.track_name,
+        artist: item.artist_name,
+        artworkUrl: item.cover_url ?? "",
+        plays: item.streams ?? 0,
+        source: "songstats" as const,
+      }));
+    }
+
+    // Apple RSS fallback
+    const results = data.feed?.results ?? [];
+    return results.map((r) => ({
       id: r.id,
       title: r.name,
       artist: r.artistName,
       artworkUrl: (r.artworkUrl100 ?? "").replace("100x100", "300x300"),
       plays: 0,
+      source: "apple" as const,
     }));
   } catch {
     return [];

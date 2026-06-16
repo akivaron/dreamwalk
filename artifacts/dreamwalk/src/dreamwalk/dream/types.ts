@@ -8,6 +8,7 @@ export interface DreamSong {
   artworkUrl: string;
   previewUrl: string | null;
   genre: string;
+  spotifyTrackId?: string;
   source: "itunes" | "curated";
 }
 
@@ -45,6 +46,18 @@ export interface MoodData {
   secondary: MoodPrimary | null;
   energy: number;
   valence: number;
+  arousal?: number;
+  moodTags?: string[];
+  genreTags?: string[];
+  source?: "cyanite" | "heuristic";
+}
+
+export interface StemData {
+  drums: number;
+  bass: number;
+  vocals: number;
+  instruments: number;
+  source: "lalal" | "fft";
 }
 
 export interface TrendingTrack {
@@ -53,6 +66,7 @@ export interface TrendingTrack {
   artist: string;
   artworkUrl: string;
   plays: number;
+  source?: "songstats" | "apple" | "session";
 }
 
 export interface ConcertInfo {
@@ -71,6 +85,11 @@ export interface DreamContext {
   themes: string[];
   importantLines: string[];
   mood: MoodData;
+  emotions: string[];
+  energy: number;
+  valence: number;
+  genre: string;
+  stems: StemData;
   narrationText: string | null;
   narrationEnabled: boolean;
   narrationAudioUrl: string | null;

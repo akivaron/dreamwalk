@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DreamContext, DreamContextState, MoodData } from "./types";
+import type { DreamContext, DreamContextState, MoodData, StemData } from "./types";
 import type { DreamSong } from "./types";
 import { fetchLyrics } from "./api/lyrics";
 import { generateNarration } from "./api/narration";
 import { fetchConcerts } from "./api/concerts";
+import { fetchMoodFromCyanite } from "./api/mood";
+import { getFFTStemData } from "./api/stems";
 import { fetchItunesTrending, getSessionTrending, recordPlay } from "./trendingStore";
 import {
   extractKeywords,
@@ -21,6 +23,14 @@ const DEFAULT_MOOD: MoodData = {
   valence: 0.6,
 };
 
+const DEFAULT_STEMS: StemData = {
+  drums: 0,
+  bass: 0,
+  vocals: 0,
+  instruments: 0,
+  source: "fft",
+};
+
 const DEFAULT_CONTEXT: DreamContext = {
   song: null,
   lyrics: null,
@@ -28,6 +38,11 @@ const DEFAULT_CONTEXT: DreamContext = {
   themes: [],
   importantLines: [],
   mood: DEFAULT_MOOD,
+  emotions: [],
+  energy: 0.5,
+  valence: 0.6,
+  genre: "",
+  stems: DEFAULT_STEMS,
   narrationText: null,
   narrationEnabled: true,
   narrationAudioUrl: null,
@@ -84,28 +99,47 @@ export function useDreamContext() {
 
     try {
       setState((prev) => ({ ...prev, loadingStep: "Reading the words..." }));
-      const lyrics = ctrl.signal.aborted ? null : await fetchLyrics(song.artist, song.title).catch(() => null);
+      const lyrics = ctrl.signal.aborted
+        ? null
+        : await fetchLyrics(song.artist, song.title).catch(() => null);
 
       if (ctrl.signal.aborted) return;
 
       const keywords = lyrics ? extractKeywords(lyrics.raw) : [];
       const themes = keywords.slice(0, 6);
       const importantLines = lyrics ? detectImportantLines(lyrics.lines) : [];
-      const mood = inferMood(keywords, song.title, song.artist);
-      const worldId = selectWorldId(keywords, mood);
-      const worldOverrides = buildWorldOverrides(keywords, mood);
+
+      // Heuristic mood as baseline
+      const heuristicMood = inferMood(keywords, song.title, song.artist);
 
       setState((prev) => ({ ...prev, loadingStep: "Feeling the atmosphere..." }));
 
-      const narrationText = buildNarrationText(song, mood, keywords);
+      // Cyanite mood analysis (parallel with narration + concerts + trending)
+      const cyaniteMoodPromise = fetchMoodFromCyanite(
+        song.artist,
+        song.title,
+        song.spotifyTrackId,
+      ).catch(() => null);
 
-      const [narrationResult, concerts, trends] = await Promise.all([
+      const narrationText = buildNarrationText(song, heuristicMood, keywords);
+      const worldId = selectWorldId(keywords, heuristicMood);
+      const worldOverrides = buildWorldOverrides(keywords, heuristicMood);
+
+      const [narrationResult, concerts, trends, cyaniteMood] = await Promise.all([
         generateNarration(narrationText).catch(() => ({ text: narrationText, audioUrl: null })),
         fetchConcerts(song.artist).catch(() => [] as Awaited<ReturnType<typeof fetchConcerts>>),
         fetchItunesTrending().catch(() => [] as Awaited<ReturnType<typeof fetchItunesTrending>>),
+        cyaniteMoodPromise,
       ]);
 
       if (ctrl.signal.aborted) return;
+
+      // Merge: prefer Cyanite if available, else heuristic
+      const mood: MoodData = cyaniteMood ?? heuristicMood;
+
+      // If Cyanite gave us richer data, update worldId + overrides with it
+      const finalWorldId = cyaniteMood ? selectWorldId(keywords, mood) : worldId;
+      const finalWorldOverrides = cyaniteMood ? buildWorldOverrides(keywords, mood) : worldOverrides;
 
       const session = getSessionTrending();
       const trendsMerged = [
@@ -121,6 +155,7 @@ export function useDreamContext() {
       });
 
       const concert = concerts[0] ?? null;
+      const stems: StemData = getFFTStemData();
 
       const context: DreamContext = {
         song,
@@ -129,14 +164,19 @@ export function useDreamContext() {
         themes,
         importantLines,
         mood,
+        emotions: mood.moodTags ?? [],
+        energy: mood.energy,
+        valence: mood.valence,
+        genre: (mood.genreTags ?? [song.genre]).filter(Boolean)[0] ?? "",
+        stems,
         narrationText,
         narrationEnabled: true,
         narrationAudioUrl: narrationResult.audioUrl,
         trends: trendsMerged,
         concert,
         concertModeActive: false,
-        worldId,
-        worldOverrides,
+        worldId: finalWorldId,
+        worldOverrides: finalWorldOverrides,
       };
 
       setState({ context, loading: false, loadingStep: "", error: null, ready: true });
