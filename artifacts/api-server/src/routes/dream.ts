@@ -163,34 +163,37 @@ router.get("/lyrics", async (req: Request, res: Response) => {
 });
 
 router.post("/narrate", async (req: Request, res: Response) => {
-  const elevenKey = process.env["ELEVENLABS_API_KEY"];
+  const elevenKey = process.env["ELEVEN_KEY"];
   if (!elevenKey) {
     res.status(503).json({ error: "narration not configured" });
     return;
   }
 
   const text = String(req.body?.text ?? "").trim().slice(0, 300);
-  const voice = String(req.body?.voice ?? "pNInz6obpgDQGcFmaJgB");
+  const voiceId = String(req.body?.voice ?? "21m00Tcm4TlvDq8ikWAM");
   if (!text) {
     res.status(400).json({ error: "text is required" });
     return;
   }
 
   try {
-    const apiRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}`, {
-      method: "POST",
-      headers: {
-        "xi-api-key": elevenKey,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
+    const apiRes = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": elevenKey,
+          "Content-Type": "application/json",
+          Accept: "audio/mpeg",
+        },
+        body: JSON.stringify({
+          text,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: { stability: 0.5, similarity_boost: 0.8 },
+        }),
+        signal: AbortSignal.timeout(20000),
       },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_monolingual_v1",
-        voice_settings: { stability: 0.5, similarity_boost: 0.8 },
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
+    );
 
     if (!apiRes.ok) {
       const err = await apiRes.text();
@@ -202,8 +205,9 @@ router.post("/narrate", async (req: Request, res: Response) => {
     res.setHeader("Content-Type", "audio/mpeg");
     res.setHeader("Content-Length", audioBuffer.byteLength);
     res.send(Buffer.from(audioBuffer));
-  } catch {
-    res.status(500).json({ error: "narration generation failed" });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: `narration failed: ${msg.slice(0, 200)}` });
   }
 });
 
