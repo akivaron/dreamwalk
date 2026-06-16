@@ -13,6 +13,7 @@ interface TitleScreenProps {
   onSelectTrack: (id: string) => void;
   onSelectDreamSong: (song: DreamSong) => void;
   onEnter: () => void;
+  onViewDetail?: (song: DreamSong) => void;
   trends: TrendingTrack[];
   isLoadingContext: boolean;
 }
@@ -26,6 +27,7 @@ export function TitleScreen({
   onSelectTrack,
   onSelectDreamSong,
   onEnter,
+  onViewDetail,
   trends,
   isLoadingContext,
 }: TitleScreenProps) {
@@ -221,7 +223,17 @@ export function TitleScreen({
                       {selectedDreamSong.artist}
                     </p>
                   </div>
-                  <span className="text-xs tracking-[0.2em] text-white/40">Selected</span>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span className="text-xs tracking-[0.2em] text-white/40">Selected</span>
+                    {onViewDetail && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onViewDetail(selectedDreamSong); }}
+                        className="rounded-full border border-white/20 bg-white/8 px-3 py-1 text-[10px] tracking-widest text-white/60 transition-all hover:bg-white/15 hover:text-white whitespace-nowrap"
+                      >
+                        View Details →
+                      </button>
+                    )}
+                  </div>
                 </motion.div>
               )}
 

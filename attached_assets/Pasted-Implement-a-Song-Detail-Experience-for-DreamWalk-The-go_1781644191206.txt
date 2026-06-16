@@ -1,0 +1,228 @@
+Implement a Song Detail Experience for DreamWalk.
+
+The goal is to make the app feel like an interactive music discovery platform even when only a 30-second preview is available.
+
+====================================================
+PAGE STRUCTURE
+====================================================
+
+Route:
+/song/[trackId]
+
+Desktop-first layout.
+
+----------------------------------------------------
+LEFT SIDE
+----------------------------------------------------
+
+Large album artwork.
+
+Under artwork:
+
+- Song title
+- Artist
+- Album
+- Release date
+- Duration
+- Explicit badge if available
+
+Display metadata from Musixmatch:
+
+- Genre
+- Subtitle
+- Artist name
+- Album name
+- Track length
+- Language
+- Track rating if available
+- Spotify / Apple Music links if available
+
+Add beautiful glassmorphism cards.
+
+----------------------------------------------------
+CENTER
+----------------------------------------------------
+
+Hero section:
+
+Album cover with blurred background.
+
+Large title:
+
+Song Name
+Artist Name
+
+Buttons:
+
+▶ Preview
+✨ Enter Dream
+♡ Save Dream
+↗ Share
+
+Preview button should play the official preview URL.
+
+Display current progress.
+
+Show waveform animation while preview is playing.
+
+====================================================
+RIGHT SIDE
+====================================================
+
+Song Insights
+
+Generate using lyrics and metadata:
+
+Mood:
+😊 Hopeful
+
+Energy:
+⚡ High
+
+Themes:
+🌊 Ocean
+🏠 Home
+🌌 Stars
+
+Keywords:
+dream
+journey
+night
+fire
+freedom
+
+Language:
+English
+
+Release:
+2024
+
+Duration:
+3m 21s
+
+====================================================
+LYRICS PREVIEW
+====================================================
+
+Display first few synced lines.
+
+Example:
+
+♪ On a dark desert highway...
+♪ Cool wind in my hair...
+♪ Warm smell of colitas...
+
+If full lyrics are unavailable,
+show:
+
+"Enter Dream to experience the song visually."
+
+====================================================
+PREVIEW EXPERIENCE
+====================================================
+
+When preview is playing:
+
+- animate album artwork
+- pulse background
+- animate particles
+- display audio progress
+
+At the end of preview:
+
+Show modal:
+
+"Continue the journey."
+
+Buttons:
+
+✨ Enter Dream
+📤 Upload Full Audio
+🔍 Explore Another Song
+
+====================================================
+ENTER DREAM BUTTON
+====================================================
+
+Pass the following context:
+
+{
+  trackId,
+  title,
+  artist,
+  album,
+  artwork,
+  previewUrl,
+  lyrics,
+  metadata,
+  mood,
+  themes,
+  keywords
+}
+
+The Dream scene should load using this context.
+
+====================================================
+DISCOVERY SECTION
+====================================================
+
+Add sections:
+
+Similar Dreams
+Trending Dreams
+Recently Explored
+
+Cards contain:
+
+- artwork
+- title
+- artist
+- emotion tag
+
+====================================================
+EMPTY STATES
+====================================================
+
+If preview is unavailable:
+
+Display:
+
+"No official preview available."
+
+Buttons:
+
+📤 Upload your own audio
+✨ Enter Dream anyway
+
+====================================================
+DESIGN LANGUAGE
+====================================================
+
+Inspired by:
+
+- Spotify
+- Apple Music
+- Journey
+
+Use:
+
+- dark cinematic theme
+- soft gradients
+- glass cards
+- subtle animations
+- smooth page transitions
+- large typography
+
+The page should feel premium and immersive.
+
+====================================================
+IMPORTANT
+====================================================
+
+Do NOT make the preview limitation feel like a missing feature.
+
+The official preview should feel intentional:
+
+"Discover the song first, then step into its dream."
+
+The Song Detail page should become the emotional entry point before entering the Dream experience.
