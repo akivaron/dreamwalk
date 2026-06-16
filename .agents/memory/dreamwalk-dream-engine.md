@@ -13,12 +13,13 @@ description: Architecture of the dream context system that translates song data 
 5. `selectWorldId(keywords, mood)` → picks one of 6 world presets
 6. `buildWorldOverrides(keywords, mood)` → Partial<World> overrides layered on top of base world
 7. `buildNarrationText(song, mood, keywords)` → string, then POSTed to `/api/narrate` (ElevenLabs)
-8. `fetchConcerts(artist)` → Ticketmaster Discovery API via api-server (optional key)
+
+**Note:** Concert/live-events integration was explicitly removed per user request — do not re-add JamBase, Ticketmaster, Bandsintown, `/api/concerts`, or any ConcertInfo type.
 
 ## Key Types
 
 - `DreamContext` in `src/dreamwalk/dream/types.ts`
-- `DreamSong`, `LyricsData`, `MoodData`, `TrendingTrack`, `ConcertInfo`
+- `DreamSong`, `LyricsData`, `MoodData`, `TrendingTrack`
 
 ## LyricsClock
 

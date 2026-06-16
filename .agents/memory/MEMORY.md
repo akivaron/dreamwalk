@@ -1,1 +1,7 @@
-- [SongDetail stats](songdetail-stats.md) — Musical DNA radar, emotional arc sparkline, lyric stats, section breakdown all in SongDetail.tsx; data flows from useSongInsights hook.
+- [DreamWalk Dream Engine](dreamwalk-dream-engine.md) — useDreamContext chain: iTunes→lyrics→keywords→mood→world→narration; concerts REMOVED per user.
+- [SongDetail analytics](songdetail-analytics.md) — Musixmatch /api/track-details endpoint feeds Analytics card + WorldListenerMap; intensity model in calcHubIntensity.
+- [Cyanite plan limits](cyanite-plan-limits.md) — Cyanite free tier constraints and mood tag fields.
+- [DreamWalk API proxy](dreamwalk-api-proxy.md) — API server proxy patterns for external music APIs.
+- [R3F patterns](r3f-patterns.md) — React Three Fiber patterns used in DreamWalk scene.
+- [WebGL sandbox](webgl-sandbox.md) — WebGL context handling and fallback patterns.
+- [ElevenLabs music](elevenlabs-music.md) — ElevenLabs narration integration details.
