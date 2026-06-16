@@ -836,31 +836,248 @@ export function SongDetail({
       </header>
 
       {/* ── Main content ── */}
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-8">
-        {/* ── 3-column grid ── */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr_280px]">
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-8 space-y-6">
 
-          {/* ════ LEFT: Metadata ════ */}
-          <motion.aside
-            className="flex flex-col gap-4"
-            initial={{ opacity: 0, x: -24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-          >
-            {/* Album art */}
-            <div className="aspect-square w-full overflow-hidden rounded-3xl shadow-[0_24px_80px_rgba(0,0,0,0.7)]">
-              {song.artworkUrl ? (
-                <img
-                  src={largeArt}
-                  alt={`${song.title} artwork`}
-                  className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-white/5 text-6xl">
-                  ♪
+        {/* ═══════════════════════════════════════════════════════════════
+            HERO — artwork + identity + wiki snippet + player + actions
+            ═══════════════════════════════════════════════════════════════ */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+        >
+          <GlassCard className="overflow-hidden p-0">
+            <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr]">
+              {/* Artwork panel */}
+              <div className="relative min-h-[240px] aspect-square lg:aspect-auto">
+                {song.artworkUrl ? (
+                  <motion.img
+                    src={largeArt}
+                    alt={song.title}
+                    className="h-full w-full object-cover"
+                    animate={isPlaying ? { scale: [1, 1.04, 1] } : { scale: 1 }}
+                    transition={{ duration: 3, repeat: isPlaying ? Infinity : 0, ease: "easeInOut" }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-white/5">
+                    <Music2 className="h-20 w-20 text-white/20" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#080c18]/85 hidden lg:block" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#080c18]/85 to-transparent lg:hidden" />
+              </div>
+
+              {/* Info panel */}
+              <div className="flex flex-col gap-0 p-8">
+                {/* Identity */}
+                <div>
+                  <h1 className="text-3xl font-light tracking-[0.06em] text-white leading-tight">{song.title}</h1>
+                  <p className="mt-2 text-base tracking-[0.18em] text-white/55">{song.artist}</p>
+                  {song.album && song.album !== song.title && (
+                    <p className="mt-0.5 text-sm tracking-wide text-white/30">{song.album}</p>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {song.genre && (
+                      <span className="rounded-full border border-white/12 bg-white/6 px-3 py-0.5 text-[10px] tracking-widest text-white/50">{song.genre}</span>
+                    )}
+                    {!trackDetails.loading && trackDetails.artistCountry && (
+                      <span className="rounded-full border border-white/12 bg-white/6 px-3 py-0.5 text-[10px] tracking-widest text-white/50">
+                        {countryFlag(trackDetails.artistCountry)} {COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry}
+                      </span>
+                    )}
+                    {!trackDetails.loading && trackDetails.explicit && (
+                      <span className="rounded border border-red-400/30 bg-red-500/10 px-2 py-0.5 text-[9px] tracking-widest text-red-400/70">EXPLICIT</span>
+                    )}
+                    {!trackDetails.loading && trackDetails.genres.slice(0, 2).map((g) => (
+                      <span key={g} className="rounded-full border border-amber-400/15 bg-amber-500/6 px-3 py-0.5 text-[10px] tracking-widest text-amber-300/50">{g}</span>
+                    ))}
+                  </div>
                 </div>
-              )}
+
+                {/* ── Wiki snippet (di awal / at the top) ── */}
+                <div className="mt-6 border-t border-white/6 pt-5">
+                  <div className="mb-2.5 flex items-center gap-2">
+                    <BookOpen className="h-3 w-3 text-white/30" />
+                    <span className="text-[10px] uppercase tracking-[0.4em] text-white/35">About</span>
+                    {wiki.songWikiUrl && (
+                      <a href={wiki.songWikiUrl} target="_blank" rel="noopener noreferrer"
+                        className="ml-auto flex items-center gap-1 text-[10px] tracking-widest text-white/20 hover:text-white/45 transition-colors">
+                        <span>Wikipedia</span><ExternalLink className="h-2.5 w-2.5" />
+                      </a>
+                    )}
+                  </div>
+                  {wiki.loading ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-2.5 w-full rounded-full bg-white/6" />
+                      <div className="h-2.5 w-4/5 rounded-full bg-white/6" />
+                      <div className="h-2.5 w-3/5 rounded-full bg-white/6" />
+                    </div>
+                  ) : wiki.songExtract ? (
+                    <>
+                      {wiki.songDescription && (
+                        <p className="mb-1.5 text-[10px] uppercase tracking-[0.3em] text-indigo-300/45">{wiki.songDescription}</p>
+                      )}
+                      <p className="text-sm font-light leading-relaxed text-white/60 tracking-wide">
+                        {wiki.songExtract.slice(0, 320)}{wiki.songExtract.length > 320 ? "…" : ""}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-white/30 italic">No Wikipedia entry found for this song.</p>
+                  )}
+                </div>
+
+                {/* ── Player + Actions ── */}
+                <div className="mt-auto pt-6 border-t border-white/6">
+                  <WaveformBars isPlaying={isPlaying} />
+                  {song.previewUrl && (
+                    <div className="mt-3 space-y-1.5">
+                      <div
+                        className="relative h-1.5 w-full cursor-pointer rounded-full bg-white/10 overflow-hidden"
+                        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); seekTo((e.clientX - r.left) / r.width); }}
+                      >
+                        <motion.div
+                          className="absolute inset-y-0 left-0 rounded-full bg-white/70"
+                          style={{ width: `${progressRatio * 100}%` }}
+                          transition={{ ease: "linear" }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] tracking-widest text-white/40">
+                        <span>{formatTime(progress)}</span>
+                        <span>{audioDuration > 0 ? formatTime(audioDuration) : "0:30"}</span>
+                      </div>
+                    </div>
+                  )}
+                  {!song.previewUrl && (
+                    <div className="mt-3 rounded-xl border border-white/8 bg-white/3 px-4 py-2.5 text-center">
+                      <p className="text-sm text-white/40 tracking-wide">No official preview available.</p>
+                    </div>
+                  )}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {song.previewUrl ? (
+                      <motion.button onClick={togglePreview} whileTap={{ scale: 0.96 }}
+                        className="flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs tracking-widest text-white backdrop-blur-md transition-all hover:bg-white/20">
+                        <span>{isPlaying ? "⏸" : "▶"}</span>
+                        <span>{isPlaying ? "Pause" : "Preview"}</span>
+                      </motion.button>
+                    ) : null}
+                    <motion.button onClick={() => onEnterDream(song)} whileTap={{ scale: 0.96 }}
+                      className="flex items-center gap-2 rounded-full border border-white/35 bg-gradient-to-r from-indigo-500/25 to-purple-500/25 px-4 py-2 text-xs tracking-widest text-white backdrop-blur-md transition-all hover:from-indigo-500/45 hover:to-purple-500/45 hover:border-white/55">
+                      <Sparkles className="h-3.5 w-3.5" /><span>Enter Dream</span>
+                    </motion.button>
+                    <motion.button onClick={() => setIsSaved((s) => !s)} whileTap={{ scale: 0.96 }}
+                      className="flex items-center gap-2 rounded-full border border-white/15 bg-white/4 px-4 py-2 text-xs tracking-widest text-white/70 transition-all hover:bg-white/10 hover:text-white">
+                      <Heart className={`h-3.5 w-3.5 ${isSaved ? "fill-current" : ""}`} />
+                      <span>{isSaved ? "Saved" : "Save"}</span>
+                    </motion.button>
+                    <motion.button onClick={() => void handleShare()} whileTap={{ scale: 0.96 }}
+                      className="flex items-center gap-2 rounded-full border border-white/15 bg-white/4 px-4 py-2 text-xs tracking-widest text-white/70 transition-all hover:bg-white/10 hover:text-white">
+                      {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+                      <span>{copied ? "Copied!" : "Share"}</span>
+                    </motion.button>
+                    {song.spotifyTrackId && (
+                      <a href={`https://open.spotify.com/track/${song.spotifyTrackId}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/4 px-4 py-2 text-xs tracking-widest text-white/55 transition-all hover:bg-white/10 hover:text-white">
+                        <span className="text-[#1DB954] text-sm">●</span>Spotify
+                      </a>
+                    )}
+                    <a href={`https://music.apple.com/search?term=${encodeURIComponent(`${song.title} ${song.artist}`)}`} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/4 px-4 py-2 text-xs tracking-widest text-white/55 transition-all hover:bg-white/10 hover:text-white">
+                      <span className="text-[#FC3C44] text-sm">●</span>Apple Music
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
+          </GlassCard>
+        </motion.div>
+
+        {/* ═══════════════════════════════════════════════════
+            QUICK STATS — Mood · Energy · Popularity · Length
+            ═══════════════════════════════════════════════════ */}
+        {!insights.loading && (
+          <motion.div
+            className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+          >
+            <GlassCard className="p-4 flex items-center gap-3">
+              <MoodIcon mood={insights.mood.primary} className="h-8 w-8 shrink-0 text-white/70" />
+              <div className="min-w-0">
+                <p className="text-[9px] uppercase tracking-[0.3em] text-white/35">Mood</p>
+                <p className="truncate text-sm font-light text-white/80 tracking-wide">{moodLbl}</p>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="p-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] uppercase tracking-[0.3em] text-white/35">Energy</p>
+                <span className="text-[11px] text-white/50">{energyPct}%</span>
+              </div>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <motion.div className="h-full rounded-full bg-gradient-to-r from-indigo-400/60 to-purple-400/80"
+                  initial={{ width: 0 }} animate={{ width: `${energyPct}%` }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.4 }} />
+              </div>
+              <p className="mt-1.5 text-xs font-light text-white/55 tracking-wide">{energyLabel(insights.mood.energy)}</p>
+            </GlassCard>
+
+            {trackDetails.trackRating !== null ? (
+              <GlassCard className="p-4 flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] uppercase tracking-[0.3em] text-white/35">Popularity</p>
+                  <span className="text-[11px] text-white/50">{trackDetails.trackRating}/100</span>
+                </div>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                  <motion.div className="h-full rounded-full bg-gradient-to-r from-amber-400/50 to-orange-400/70"
+                    initial={{ width: 0 }} animate={{ width: `${trackDetails.trackRating}%` }}
+                    transition={{ duration: 1, ease: "easeOut", delay: 0.5 }} />
+                </div>
+                {trackDetails.numFavourite !== null && trackDetails.numFavourite > 0 && (
+                  <p className="mt-1.5 text-xs font-light text-white/55 tracking-wide">
+                    {trackDetails.numFavourite >= 1000 ? `${(trackDetails.numFavourite / 1000).toFixed(1)}k` : String(trackDetails.numFavourite)} saves
+                  </p>
+                )}
+              </GlassCard>
+            ) : (
+              <GlassCard className="p-4 flex flex-col justify-center">
+                <p className="text-[9px] uppercase tracking-[0.3em] text-white/35 mb-1.5">Valence</p>
+                <p className="text-sm font-light text-white/60">{Math.round(insights.mood.valence * 100)}%</p>
+                <p className="text-[10px] text-white/35 mt-0.5">{insights.mood.valence > 0.6 ? "Uplifting" : insights.mood.valence > 0.4 ? "Balanced" : "Introspective"}</p>
+              </GlassCard>
+            )}
+
+            <GlassCard className="p-4 flex flex-col justify-center">
+              <p className="text-[9px] uppercase tracking-[0.3em] text-white/35 mb-1.5">
+                {trackDetails.trackLength && trackDetails.trackLength > 0 ? "Full Length" : "Preview"}
+              </p>
+              <p className="text-sm font-light text-white/80 tracking-widest">
+                {trackDetails.trackLength && trackDetails.trackLength > 0
+                  ? formatTime(trackDetails.trackLength)
+                  : audioDuration > 0 ? formatTime(audioDuration) : "–"}
+              </p>
+              {insights.mood.source && (
+                <p className="mt-1.5 text-[10px] text-white/30">
+                  {insights.mood.source === "cyanite" ? "Cyanite AI" : "Heuristic"} analysis
+                </p>
+              )}
+            </GlassCard>
+          </motion.div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════
+            2-COLUMN CONTENT
+            ═══════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+
+          {/* ════ LEFT: Lyrics + Analysis ════ */}
+          <motion.div
+            className="flex flex-col gap-6"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
+          >
+            {/* ── Lyrics preview ── */}
 
             {/* Track identity */}
             <GlassCard className="p-5">
