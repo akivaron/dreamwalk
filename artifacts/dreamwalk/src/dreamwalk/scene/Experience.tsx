@@ -15,6 +15,9 @@ import { Clouds } from "./Clouds";
 import { Particles } from "./Particles";
 import { PostFX } from "./PostFX";
 import { ScreenshotHelper } from "./ScreenshotHelper";
+import { Grass } from "./Grass";
+import { Birds } from "./Birds";
+import { Waterfall } from "./Waterfall";
 
 interface ExperienceProps {
   world: World;
@@ -25,11 +28,13 @@ interface ExperienceProps {
 export function Experience({ world, analyser, onScreenshotReady }: ExperienceProps) {
   return (
     <Canvas
+      shadows={{ type: THREE.PCFSoftShadowMap }}
       dpr={[1, 1.75]}
       gl={{
         antialias: true,
         preserveDrawingBuffer: true,
         powerPreference: "high-performance",
+        toneMapping: THREE.NoToneMapping,
       }}
       camera={{ fov: 62, near: 0.1, far: 2400, position: [0, 3.2, 14] }}
       onCreated={({ gl }) => {
@@ -38,15 +43,18 @@ export function Experience({ world, analyser, onScreenshotReady }: ExperiencePro
     >
       <Suspense fallback={null}>
         <AudioAnalyzer analyser={analyser} />
-        <CameraRig />
+        <CameraRig world={world} />
         <Atmosphere world={world} />
         <Firmament world={world} />
         <Mountains world={world} />
         <Terrain world={world} />
+        <Waterfall world={world} />
+        <Grass world={world} />
         <Structures world={world} />
         <Banners world={world} />
         {world.features.islands && <FloatingIslands world={world} />}
         {world.features.clouds && <Clouds world={world} />}
+        <Birds />
         <Particles world={world} />
         <PostFX world={world} />
         <ScreenshotHelper onReady={onScreenshotReady} />

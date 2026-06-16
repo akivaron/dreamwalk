@@ -83,9 +83,9 @@ export function TitleScreen({
           Walk inside your music
         </motion.p>
 
-        <div className="mt-14 grid w-full grid-cols-1 gap-8 md:grid-cols-2">
-          <section>
-            <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.4em] text-white/60">
+        <div className={`mt-14 w-full ${worlds.length > 1 ? "grid grid-cols-1 gap-8 md:grid-cols-2" : "flex justify-center"}`}>
+          <section className={worlds.length > 1 ? "" : "w-full max-w-md"}>
+            <h2 className={`mb-4 text-xs font-medium uppercase tracking-[0.4em] text-white/60 ${worlds.length > 1 ? "" : "text-center"}`}>
               Choose a song
             </h2>
             <div className="flex flex-col gap-2">
@@ -137,47 +137,49 @@ export function TitleScreen({
             </div>
           </section>
 
-          <section>
-            <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.4em] text-white/60">
-              Choose a world
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {worlds.map((w) => {
-                const active = w.id === worldId;
-                return (
-                  <button
-                    key={w.id}
-                    onClick={() => onSelectWorld(w.id)}
-                    className={`overflow-hidden rounded-xl border text-left backdrop-blur-md transition-all duration-300 ${
-                      active
-                        ? "border-white/70 ring-1 ring-white/40"
-                        : "border-white/10 hover:border-white/30"
-                    }`}
-                  >
-                    <div
-                      className="relative h-16 w-full"
-                      style={{
-                        background: `linear-gradient(155deg, ${w.colors.skyTop} 0%, ${w.colors.skyBottom} 60%, ${w.colors.ground} 100%)`,
-                      }}
+          {worlds.length > 1 && (
+            <section>
+              <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.4em] text-white/60">
+                Choose a world
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                {worlds.map((w) => {
+                  const active = w.id === worldId;
+                  return (
+                    <button
+                      key={w.id}
+                      onClick={() => onSelectWorld(w.id)}
+                      className={`overflow-hidden rounded-xl border text-left backdrop-blur-md transition-all duration-300 ${
+                        active
+                          ? "border-white/70 ring-1 ring-white/40"
+                          : "border-white/10 hover:border-white/30"
+                      }`}
                     >
-                      <span
-                        className="absolute right-3 top-3 h-4 w-4 rounded-full"
+                      <div
+                        className="relative h-16 w-full"
                         style={{
-                          background: w.colors.sun,
-                          boxShadow: `0 0 14px 3px ${w.colors.sunGlow}`,
+                          background: `linear-gradient(155deg, ${w.colors.skyTop} 0%, ${w.colors.skyBottom} 60%, ${w.colors.ground} 100%)`,
                         }}
-                      />
-                    </div>
-                    <div className="bg-black/40 px-3 py-2">
-                      <span className="block text-sm font-light tracking-wide text-white">
-                        {w.name}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+                      >
+                        <span
+                          className="absolute right-3 top-3 h-4 w-4 rounded-full"
+                          style={{
+                            background: w.colors.sun,
+                            boxShadow: `0 0 14px 3px ${w.colors.sunGlow}`,
+                          }}
+                        />
+                      </div>
+                      <div className="bg-black/40 px-3 py-2">
+                        <span className="block text-sm font-light tracking-wide text-white">
+                          {w.name}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
 
         <motion.button

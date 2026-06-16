@@ -13,10 +13,18 @@ function detectWebGL(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const canvas = document.createElement("canvas");
-    const gl =
-      canvas.getContext("webgl2") ??
-      canvas.getContext("webgl") ??
-      canvas.getContext("experimental-webgl");
+    const gl2 = canvas.getContext("webgl2");
+    const gl1 = canvas.getContext("webgl");
+    const glExp = canvas.getContext("experimental-webgl");
+    const gl = gl2 ?? gl1 ?? glExp;
+    
+    console.log("WebGL detection probe results:", {
+      hasWebGL2: !!gl2,
+      hasWebGL1: !!gl1,
+      hasExperimental: !!glExp,
+      selectedContext: gl ? gl.constructor.name : null
+    });
+
     if (!gl) return false;
     // Release the probe context immediately. Holding an extra WebGL context can
     // cause a constrained sandbox to lose an existing context when the real
@@ -25,7 +33,8 @@ function detectWebGL(): boolean {
       .getExtension("WEBGL_lose_context")
       ?.loseContext();
     return true;
-  } catch {
+  } catch (e) {
+    console.error("Error during WebGL detection:", e);
     return false;
   }
 }

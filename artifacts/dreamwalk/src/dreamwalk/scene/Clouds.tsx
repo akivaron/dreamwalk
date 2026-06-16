@@ -48,15 +48,40 @@ export function Clouds({ world }: { world: World }) {
   return (
     <group ref={group}>
       {items.map((it, i) => (
-        <sprite key={i} position={[it.x, it.y, it.z]} scale={[it.s, it.s * 0.55, 1]}>
-          <spriteMaterial
-            map={tex}
-            color={world.colors.skyTop}
-            transparent
-            opacity={0.32}
-            depthWrite={false}
-          />
-        </sprite>
+        <group key={i} position={[it.x, it.y, it.z]}>
+          {/* Bottom Layer - Shadow (darker, slightly offset down/back) */}
+          <sprite position={[-it.s * 0.08, -it.s * 0.05, -3]} scale={[it.s * 1.1, it.s * 0.6, 1]}>
+            <spriteMaterial
+              map={tex}
+              color={world.colors.skyBottom}
+              transparent
+              opacity={0.42}
+              depthWrite={false}
+            />
+          </sprite>
+
+          {/* Middle Layer - Main Body (fog color) */}
+          <sprite position={[0, 0, 0]} scale={[it.s, it.s * 0.55, 1]}>
+            <spriteMaterial
+              map={tex}
+              color={world.colors.fog}
+              transparent
+              opacity={0.48}
+              depthWrite={false}
+            />
+          </sprite>
+
+          {/* Top Layer - Highlight (bright light color, offset up/front) */}
+          <sprite position={[it.s * 0.08, it.s * 0.05, 3]} scale={[it.s * 0.85, it.s * 0.48, 1]}>
+            <spriteMaterial
+              map={tex}
+              color={world.colors.light}
+              transparent
+              opacity={0.56}
+              depthWrite={false}
+            />
+          </sprite>
+        </group>
       ))}
     </group>
   );

@@ -28,7 +28,7 @@ export function Banners({ world }: { world: World }) {
       const x = Math.cos(a) * rad;
       const z = Math.sin(a) * rad;
       const s = 0.9 + rand() * 1.3;
-      const geo = new THREE.PlaneGeometry(6 * s, 13 * s, 10, 16);
+      const geo = new THREE.PlaneGeometry(3.2 * s, 13 * s, 8, 16);
       const base = (geo.attributes.position as THREE.BufferAttribute).array.slice() as Float32Array;
       arr.push({
         x,
@@ -58,11 +58,13 @@ export function Banners({ world }: { world: World }) {
       for (let i = 0; i < pos.count; i++) {
         const bx = base[i * 3];
         const by = base[i * 3 + 1];
-        const top = (by + 6.5 * it.s) / (13 * it.s);
+        const top = (by + 6.5 * it.s) / (13 * it.s); // 0 at bottom, 1 at top
+        const waveFactor = 1 - top; // 1 at bottom, 0 at top (top is anchored)
         const wave =
-          Math.sin(bx * 0.8 + t * 2.0 + it.phase) * amp * top +
-          Math.sin(by * 0.4 + t * 1.3 + it.phase) * amp * 0.4 * top;
-        pos.setZ(i, wave);
+          Math.sin(bx * 0.8 + t * 3.8 + it.phase) * amp * 0.35 * waveFactor +
+          Math.sin(by * 0.45 + t * 2.4 + it.phase) * amp * 0.12 * waveFactor;
+        const windPush = amp * 0.45 * waveFactor;
+        pos.setZ(i, wave + windPush);
       }
       pos.needsUpdate = true;
       it.geo.computeVertexNormals();
@@ -91,6 +93,18 @@ export function Banners({ world }: { world: World }) {
     [world],
   );
 
+  const crownMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(world.colors.structureGlow),
+        roughness: 0.1,
+        metalness: 0.9,
+        emissive: new THREE.Color(world.colors.structureGlow),
+        emissiveIntensity: 0.55,
+      }),
+    [world],
+  );
+
   return (
     <group>
       {items.map((it, i) => {
@@ -98,16 +112,30 @@ export function Banners({ world }: { world: World }) {
         const poleH = h + 4 * it.s;
         return (
           <group key={i} position={[it.x, it.ground, it.z]} rotation={[0, it.rot, 0]}>
-            <mesh material={poleMat} position={[0, poleH / 2, 0]}>
-              <cylinderGeometry args={[0.4 * it.s, 0.4 * it.s, poleH, 6]} />
+            {/* Main vertical pole */}
+            <mesh material={poleMat} position={[0, poleH / 2, 0]} castShadow receiveShadow>
+              <cylinderGeometry args={[0.4 * it.s, 0.4 * it.s, poleH, 16]} />
             </mesh>
+            
+            {/* Horizontal banner hanger bar */}
+            <mesh material={poleMat} position={[1.5 * it.s, poleH - 1.2 * it.s, 0]} rotation={[0, 0, Math.PI / 2]} castShadow receiveShadow>
+              <cylinderGeometry args={[0.1 * it.s, 0.1 * it.s, 3.2 * it.s, 12]} />
+            </mesh>
+
+            {/* Golden sun-disc / dodecahedron crown crest */}
+            <mesh material={crownMat} position={[0, poleH + 0.3 * it.s, 0]} castShadow>
+              <dodecahedronGeometry args={[0.55 * it.s, 0]} />
+            </mesh>
+
             <mesh
               ref={(el) => {
                 refs.current[i] = el;
               }}
               geometry={it.geo}
               material={mat}
-              position={[3 * it.s, poleH - h / 2 - 1.5 * it.s, 0]}
+              position={[1.5 * it.s, poleH - h / 2 - 1.2 * it.s, 0]}
+              castShadow
+              receiveShadow
             />
           </group>
         );
