@@ -26,6 +26,14 @@ export interface DreamEventState {
   currentLine: string;
 }
 
+export interface LalalEnvelope {
+  available: boolean;
+  vocals: number[];
+  instruments: number[];
+  windowMs: number;
+  durationMs: number;
+}
+
 export const audioLevels: AudioLevels = {
   level: 0,
   bass: 0,
@@ -54,6 +62,14 @@ export const dreamEvents: DreamEventState = {
   currentLine: "",
 };
 
+export const lalalEnvelope: LalalEnvelope = {
+  available: false,
+  vocals: [],
+  instruments: [],
+  windowMs: 100,
+  durationMs: 0,
+};
+
 export function resetAudioLevels(): void {
   audioLevels.level = 0;
   audioLevels.bass = 0;
@@ -74,4 +90,8 @@ export function resetAudioLevels(): void {
   dreamEvents.bridgeIntensity = 0;
   dreamEvents.emotionalIntensity = 0;
   dreamEvents.currentLine = "";
+  lalalEnvelope.available = false;
+  lalalEnvelope.vocals = [];
+  lalalEnvelope.instruments = [];
+  lalalEnvelope.durationMs = 0;
 }

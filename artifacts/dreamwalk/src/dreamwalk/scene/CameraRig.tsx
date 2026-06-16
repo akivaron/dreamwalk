@@ -1,7 +1,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useMemo } from "react";
 import * as THREE from "three";
-import { audioLevels } from "../audio/audioStore";
+import { audioLevels, dreamEvents } from "../audio/audioStore";
 import { terrainHeight } from "./terrainField";
 import type { World } from "../types";
 import { mulberry32 } from "../rng";
@@ -640,10 +640,11 @@ export function CameraRig({ world }: { world: World }) {
       spark.scale.setScalar(Math.max(0, scaleVal));
     });
 
-    // 6. Dynamic FOV (stretch view when running)
+    // 6. Dynamic FOV — running widens, emotional lines zoom in for focus
     if (camera instanceof THREE.PerspectiveCamera) {
-      const targetFov = isRunning ? 68 : 62;
-      camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 5 * dt);
+      const targetFov = dreamEvents.isEmotionalLine ? 46 : isRunning ? 68 : 62;
+      const fovLerpSpeed = dreamEvents.isEmotionalLine ? 1.2 : 5;
+      camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, fovLerpSpeed * dt);
       camera.updateProjectionMatrix();
     }
 

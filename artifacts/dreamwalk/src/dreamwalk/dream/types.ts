@@ -9,7 +9,7 @@ export interface DreamSong {
   previewUrl: string | null;
   genre: string;
   spotifyTrackId?: string;
-  source: "itunes" | "curated";
+  source: "itunes" | "curated" | "musixmatch";
 }
 
 export interface SyncedLyricLine {

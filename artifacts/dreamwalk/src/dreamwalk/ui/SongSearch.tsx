@@ -1,7 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { searchSongs } from "../dream/api/itunes";
 import type { DreamSong } from "../dream/types";
+
+const API_BASE = import.meta.env.BASE_URL;
+
+interface SearchResult {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  genre: string;
+  artworkUrl: string | null;
+  previewUrl: string | null;
+  source: string;
+}
+
+async function searchSongsViaBackend(q: string): Promise<DreamSong[]> {
+  const res = await fetch(`${API_BASE}api/search?${new URLSearchParams({ q })}`, {
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) return [];
+  const data = (await res.json()) as { results?: SearchResult[] };
+  return (data.results ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    artist: r.artist,
+    album: r.album,
+    artworkUrl: r.artworkUrl ?? "",
+    previewUrl: r.previewUrl,
+    genre: r.genre,
+    source: r.source === "musixmatch" ? ("musixmatch" as const) : ("itunes" as const),
+  }));
+}
 
 interface SongSearchProps {
   onSelect: (song: DreamSong) => void;
@@ -24,7 +54,7 @@ export function SongSearch({ onSelect, accentColor = "rgba(255,255,255,0.15)" }:
     }
     setSearching(true);
     try {
-      const songs = await searchSongs(q);
+      const songs = await searchSongsViaBackend(q);
       setResults(songs.slice(0, 8));
     } catch {
       setResults([]);
@@ -70,6 +100,8 @@ export function SongSearch({ onSelect, accentColor = "rgba(255,255,255,0.15)" }:
     setQuery("");
     setResults([]);
   };
+
+  void accentColor;
 
   return (
     <div className="w-full">

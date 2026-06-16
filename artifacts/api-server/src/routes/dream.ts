@@ -306,6 +306,167 @@ router.post("/mood", async (req: Request, res: Response) => {
   }
 });
 
+// ─── /api/search — Musixmatch track search (enriched with iTunes for media) ──
+
+interface MusixmatchTrackEntry {
+  track: {
+    track_id: number;
+    track_name: string;
+    artist_name: string;
+    album_name: string;
+    primary_genres?: {
+      music_genre_list?: Array<{
+        music_genre?: { music_genre_name?: string };
+      }>;
+    };
+  };
+}
+
+interface ItunesSearchResult {
+  trackId?: number;
+  trackName?: string;
+  artistName?: string;
+  collectionName?: string;
+  artworkUrl100?: string;
+  previewUrl?: string;
+  primaryGenreName?: string;
+}
+
+router.get("/search", async (req: Request, res: Response) => {
+  const q = String(req.query.q ?? "").trim();
+  if (!q) { res.json({ results: [] }); return; }
+
+  const musixKey = process.env["MUSIXMATCH_KEY"];
+
+  let tracks: Array<{
+    id: string;
+    title: string;
+    artist: string;
+    album: string;
+    genre: string;
+    source: string;
+  }> = [];
+
+  if (musixKey) {
+    try {
+      const mmUrl =
+        `https://api.musixmatch.com/ws/1.1/track.search?` +
+        new URLSearchParams({
+          q_track: q,
+          page_size: "8",
+          page: "1",
+          s_track_rating: "desc",
+          apikey: musixKey,
+        });
+
+      const mmRes = await fetch(mmUrl, { signal: AbortSignal.timeout(6000) });
+      if (mmRes.ok) {
+        const mmData = (await mmRes.json()) as {
+          message?: { body?: { track_list?: MusixmatchTrackEntry[] } };
+        };
+        const list = mmData.message?.body?.track_list ?? [];
+        tracks = list.map(({ track }) => ({
+          id: String(track.track_id),
+          title: track.track_name,
+          artist: track.artist_name,
+          album: track.album_name ?? "",
+          genre:
+            track.primary_genres?.music_genre_list?.[0]?.music_genre
+              ?.music_genre_name ?? "Unknown",
+          source: "musixmatch",
+        }));
+      }
+    } catch {
+      /* fall through to iTunes */
+    }
+  }
+
+  // If Musixmatch returned nothing, fall back to iTunes search
+  if (tracks.length === 0) {
+    try {
+      const itunesRes = await fetch(
+        `https://itunes.apple.com/search?${new URLSearchParams({
+          term: q,
+          media: "music",
+          entity: "song",
+          limit: "8",
+        })}`,
+        { signal: AbortSignal.timeout(6000) },
+      );
+      if (itunesRes.ok) {
+        const itunesData = (await itunesRes.json()) as { results?: ItunesSearchResult[] };
+        tracks = (itunesData.results ?? []).map((t) => ({
+          id: String(t.trackId ?? Math.random()),
+          title: t.trackName ?? "",
+          artist: t.artistName ?? "",
+          album: t.collectionName ?? "",
+          genre: t.primaryGenreName ?? "Unknown",
+          source: "itunes",
+        }));
+      }
+    } catch {
+      /* no results */
+    }
+  }
+
+  // Enrich each Musixmatch track with iTunes media (artwork + preview URL)
+  const enriched = await Promise.all(
+    tracks.map(async (track) => {
+      if (track.source === "itunes") {
+        // Already have minimal data; do a full lookup for media
+        try {
+          const r = await fetch(
+            `https://itunes.apple.com/search?${new URLSearchParams({
+              term: `${track.artist} ${track.title}`,
+              media: "music",
+              entity: "song",
+              limit: "1",
+            })}`,
+            { signal: AbortSignal.timeout(5000) },
+          );
+          if (r.ok) {
+            const d = (await r.json()) as { results?: ItunesSearchResult[] };
+            const it = d.results?.[0];
+            if (it) {
+              return {
+                ...track,
+                artworkUrl: it.artworkUrl100?.replace("100x100bb", "400x400bb") ?? null,
+                previewUrl: it.previewUrl ?? null,
+              };
+            }
+          }
+        } catch { /* keep without media */ }
+        return { ...track, artworkUrl: null as null, previewUrl: null as null };
+      }
+
+      // Musixmatch track: enrich via iTunes
+      try {
+        const r = await fetch(
+          `https://itunes.apple.com/search?${new URLSearchParams({
+            term: `${track.artist} ${track.title}`,
+            media: "music",
+            entity: "song",
+            limit: "1",
+          })}`,
+          { signal: AbortSignal.timeout(5000) },
+        );
+        if (r.ok) {
+          const d = (await r.json()) as { results?: ItunesSearchResult[] };
+          const it = d.results?.[0];
+          return {
+            ...track,
+            artworkUrl: it?.artworkUrl100?.replace("100x100bb", "400x400bb") ?? null,
+            previewUrl: it?.previewUrl ?? null,
+          };
+        }
+      } catch { /* keep without media */ }
+      return { ...track, artworkUrl: null as null, previewUrl: null as null };
+    }),
+  );
+
+  res.json({ results: enriched });
+});
+
 // ─── /api/stems — LALAL.AI stem separation ──────────────────────────────────
 
 router.post("/stems", async (req: Request, res: Response) => {
