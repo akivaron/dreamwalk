@@ -69,15 +69,6 @@ export interface TrendingTrack {
   source?: "songstats" | "apple" | "session";
 }
 
-export interface ConcertInfo {
-  id: string;
-  name: string;
-  date: string;
-  venue: string;
-  city: string;
-  url: string;
-}
-
 export interface DreamContext {
   song: DreamSong | null;
   lyrics: LyricsData | null;
@@ -94,8 +85,6 @@ export interface DreamContext {
   narrationEnabled: boolean;
   narrationAudioUrl: string | null;
   trends: TrendingTrack[];
-  concert: ConcertInfo | null;
-  concertModeActive: boolean;
   worldId: string;
   worldOverrides: Partial<World>;
 }

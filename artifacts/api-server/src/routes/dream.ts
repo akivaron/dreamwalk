@@ -193,7 +193,7 @@ router.get("/lyrics", async (req: Request, res: Response) => {
   res.json({ lyrics: null, synced: [], source: null });
 });
 
-// ─── /api/mood — Cyanite mood analysis ──────────────────────────────────────
+// ─── /api/mood — Cyanite mood via spotifyTrackSearch + audioFeatures ─────────
 
 router.post("/mood", async (req: Request, res: Response) => {
   const cyaniteToken = process.env["CYANITE_ACCESS_TOKEN"];
@@ -202,131 +202,102 @@ router.post("/mood", async (req: Request, res: Response) => {
     return;
   }
 
-  const { spotifyTrackId, title, artist } = req.body as {
-    spotifyTrackId?: string;
-    title?: string;
-    artist?: string;
-  };
-
-  if (!spotifyTrackId && !(title && artist)) {
-    res.status(400).json({ error: "spotifyTrackId or title+artist required" });
+  const { title, artist } = req.body as { title?: string; artist?: string };
+  if (!(title && artist)) {
+    res.status(400).json({ error: "title and artist required" });
     return;
   }
 
   try {
-    // Cyanite GraphQL API
-    // Step 1: search for track if no Spotify ID provided
-    let trackId: string | null = spotifyTrackId ?? null;
-
-    if (!trackId && title && artist) {
-      const searchQuery = `
-        query {
-          spotifyTrackSearch(query: "${artist} ${title}", first: 1) {
-            ... on SpotifyTrackSearchSuccess {
-              tracks { id }
-            }
-          }
-        }
-      `;
-      const searchRes = await fetch("https://api.cyanite.ai/graphql", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${cyaniteToken}`,
-        },
-        body: JSON.stringify({ query: searchQuery }),
-        signal: AbortSignal.timeout(8000),
-      });
-      if (searchRes.ok) {
-        const searchData = (await searchRes.json()) as {
-          data?: {
-            spotifyTrackSearch?: { tracks?: Array<{ id: string }> };
-          };
-        };
-        trackId = searchData.data?.spotifyTrackSearch?.tracks?.[0]?.id ?? null;
-      }
-    }
-
-    if (!trackId) {
-      res.status(404).json({ error: "track not found in Cyanite" });
-      return;
-    }
-
-    // Step 2: fetch mood + audio analysis
-    const analysisQuery = `
-      query {
-        spotifyTrack(id: "${trackId}") {
-          ... on SpotifyTrack {
-            id
-            title
-            audioAnalysisV6 {
-              ... on AudioAnalysisV6Finished {
-                result {
-                  genreTags
-                  moodTags
-                  valence
-                  arousal
-                  energyLevel
-                  primaryMood { name value }
-                  secondaryMoods { name value }
-                }
+    const query = `
+      query SearchTrack($term: String!) {
+        spotifyTrackSearch(data: { term: $term, limit: 1 }) {
+          ... on SpotifyTrackSearchResult {
+            items {
+              id
+              name
+              popularity
+              audioFeatures {
+                energy
+                valence
+                danceability
+                tempo
+                acousticness
+                instrumentalness
               }
             }
+          }
+          ... on SpotifyTrackSearchError {
+            message
           }
         }
       }
     `;
-    const analysisRes = await fetch("https://api.cyanite.ai/graphql", {
+
+    const searchRes = await fetch("https://api.cyanite.ai/graphql", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${cyaniteToken}`,
       },
-      body: JSON.stringify({ query: analysisQuery }),
+      body: JSON.stringify({ query, variables: { term: `${artist} ${title}` } }),
       signal: AbortSignal.timeout(10000),
     });
 
-    if (!analysisRes.ok) {
+    if (!searchRes.ok) {
       res.status(502).json({ error: "Cyanite API error" });
       return;
     }
 
-    const analysisData = (await analysisRes.json()) as {
+    const searchData = (await searchRes.json()) as {
       data?: {
-        spotifyTrack?: {
-          audioAnalysisV6?: {
-            result?: {
-              genreTags?: string[];
-              moodTags?: string[];
+        spotifyTrackSearch?: {
+          items?: Array<{
+            id: string;
+            name: string;
+            popularity?: number;
+            audioFeatures?: {
+              energy?: number;
               valence?: number;
-              arousal?: number;
-              energyLevel?: string;
-              primaryMood?: { name: string; value: number };
-              secondaryMoods?: Array<{ name: string; value: number }>;
-            };
-          };
+              danceability?: number;
+              tempo?: number;
+              acousticness?: number;
+              instrumentalness?: number;
+            } | null;
+          }>;
+          message?: string;
         };
       };
+      errors?: Array<{ message: string }>;
     };
 
-    const result = analysisData.data?.spotifyTrack?.audioAnalysisV6?.result;
-    if (!result) {
-      res.status(404).json({ error: "no analysis available yet" });
+    if (searchData.errors?.length) {
+      res.status(502).json({ error: searchData.errors[0]?.message ?? "Cyanite error" });
       return;
     }
 
-    const energyMap: Record<string, number> = {
-      low: 0.2, medium: 0.5, high: 0.75, very_high: 0.95,
-    };
+    const track = searchData.data?.spotifyTrackSearch?.items?.[0];
+    if (!track) {
+      res.status(404).json({ error: "track not found in Cyanite" });
+      return;
+    }
+
+    const af = track.audioFeatures;
+    if (!af) {
+      // audioFeatures not available on this plan — return null so frontend falls back to heuristic
+      res.status(404).json({ error: "audioFeatures not available" });
+      return;
+    }
 
     res.json({
-      primaryMood: result.primaryMood?.name ?? null,
-      secondaryMoods: result.secondaryMoods?.map((m) => m.name) ?? [],
-      moodTags: result.moodTags ?? [],
-      genreTags: result.genreTags ?? [],
-      valence: result.valence ?? null,
-      arousal: result.arousal ?? null,
-      energy: energyMap[result.energyLevel ?? ""] ?? null,
+      trackId: track.id,
+      trackName: track.name,
+      energy: af.energy ?? null,
+      valence: af.valence ?? null,
+      danceability: af.danceability ?? null,
+      tempo: af.tempo ?? null,
+      acousticness: af.acousticness ?? null,
+      instrumentalness: af.instrumentalness ?? null,
       source: "cyanite",
     });
   } catch (err) {
@@ -351,7 +322,6 @@ router.post("/stems", async (req: Request, res: Response) => {
   }
 
   try {
-    // LALAL.AI v2 upload + separate
     const uploadRes = await fetch("https://www.lalal.ai/api/upload/", {
       method: "POST",
       headers: {
@@ -376,18 +346,13 @@ router.post("/stems", async (req: Request, res: Response) => {
 
     const fileId = uploadData.id;
 
-    // Trigger separation (stems: vocals, drums, bass, other)
     const sepRes = await fetch("https://www.lalal.ai/api/separate/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `license ${lalalKey}`,
       },
-      body: JSON.stringify({
-        id: fileId,
-        stem: "vocals",
-        splitter: "phoenix",
-      }),
+      body: JSON.stringify({ id: fileId, stem: "vocals", splitter: "phoenix" }),
       signal: AbortSignal.timeout(10000),
     });
 
@@ -396,7 +361,6 @@ router.post("/stems", async (req: Request, res: Response) => {
       return;
     }
 
-    // Return file ID for polling
     res.json({ fileId, status: "processing", source: "lalal" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -404,7 +368,6 @@ router.post("/stems", async (req: Request, res: Response) => {
   }
 });
 
-// Poll for completed stem separation
 router.get("/stems/:fileId", async (req: Request, res: Response) => {
   const lalalKey = process.env["LALAL_KEY"];
   if (!lalalKey) {
@@ -426,12 +389,7 @@ router.get("/stems/:fileId", async (req: Request, res: Response) => {
 
     const data = (await checkRes.json()) as {
       status?: string;
-      stem?: {
-        vocals?: { stem?: string; back?: string };
-        drums?: { stem?: string };
-        bass?: { stem?: string };
-        other?: { stem?: string };
-      };
+      stem?: { vocals?: { stem?: string; back?: string } };
     };
 
     res.json({ ...data, source: "lalal" });
@@ -488,63 +446,6 @@ router.post("/narrate", async (req: Request, res: Response) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: `narration failed: ${msg.slice(0, 200)}` });
-  }
-});
-
-// ─── /api/concerts — Bandsintown ────────────────────────────────────────────
-
-router.get("/concerts", async (req: Request, res: Response) => {
-  const artist = String(req.query.artist ?? "").trim();
-  if (!artist) {
-    res.json({ concerts: [] });
-    return;
-  }
-
-  const appId = process.env["BANDSINTOWN_APP_ID"];
-  if (!appId) {
-    res.json({ concerts: [] });
-    return;
-  }
-
-  try {
-    const url = `https://rest.bandsintown.com/artists/${encodeURIComponent(artist)}/events?app_id=${encodeURIComponent(appId)}&date=upcoming`;
-    const apiRes = await fetch(url, { signal: AbortSignal.timeout(6000) });
-
-    if (!apiRes.ok) {
-      res.json({ concerts: [] });
-      return;
-    }
-
-    const events = (await apiRes.json()) as Array<{
-      id: string;
-      title?: string;
-      datetime: string;
-      url: string;
-      venue: {
-        name: string;
-        city: string;
-        country: string;
-      };
-      lineup?: string[];
-    }>;
-
-    if (!Array.isArray(events)) {
-      res.json({ concerts: [] });
-      return;
-    }
-
-    const concerts = events.slice(0, 5).map((e) => ({
-      id: String(e.id),
-      name: e.title ?? `${artist} Live`,
-      date: e.datetime.split("T")[0] ?? e.datetime,
-      venue: e.venue?.name ?? "Unknown Venue",
-      city: [e.venue?.city, e.venue?.country].filter(Boolean).join(", "),
-      url: e.url,
-    }));
-
-    res.json({ concerts });
-  } catch {
-    res.json({ concerts: [] });
   }
 });
 

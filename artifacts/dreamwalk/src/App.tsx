@@ -217,7 +217,6 @@ export default function App() {
               songMode === "dream" ? (dream.context.lyrics?.synced ?? undefined) : undefined
             }
             getAudioTime={engine.getProgress ? () => engine.getProgress().time : undefined}
-            concertModeActive={songMode === "dream" ? dream.context.concertModeActive : false}
             onScreenshotReady={(fn) => {
               screenshotFn.current = fn;
             }}
@@ -247,7 +246,6 @@ export default function App() {
           onScreenshot={captureScreenshot}
           onExit={exit}
           onToggleNarration={dream.toggleNarration}
-          onToggleConcertMode={dream.toggleConcertMode}
         />
       )}
 

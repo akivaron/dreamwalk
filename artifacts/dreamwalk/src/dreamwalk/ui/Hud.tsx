@@ -15,7 +15,6 @@ interface HudProps {
   onScreenshot: () => void;
   onExit: () => void;
   onToggleNarration: () => void;
-  onToggleConcertMode: () => void;
 }
 
 export function Hud({
@@ -29,7 +28,6 @@ export function Hud({
   onScreenshot,
   onExit,
   onToggleNarration,
-  onToggleConcertMode,
 }: HudProps) {
   const [visible, setVisible] = useState(true);
   const [showHint, setShowHint] = useState(true);
@@ -71,7 +69,6 @@ export function Hud({
 
   void world;
 
-  const hasConcert = !!dreamContext.concert;
   const narrationOn = dreamContext.narrationEnabled;
 
   return (
@@ -108,18 +105,6 @@ export function Hud({
                 <span className="rounded-full bg-black/30 px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-white/50 backdrop-blur-md">
                   {dreamContext.mood.primary}
                 </span>
-              )}
-              {hasConcert && (
-                <button
-                  onClick={onToggleConcertMode}
-                  className={`pointer-events-auto rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] backdrop-blur-md transition-all ${
-                    dreamContext.concertModeActive
-                      ? "bg-white/25 text-white border border-white/50"
-                      : "bg-black/30 text-white/60 border border-white/20 hover:border-white/40"
-                  }`}
-                >
-                  Concert
-                </button>
               )}
               <button
                 onClick={onExit}

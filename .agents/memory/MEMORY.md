@@ -3,3 +3,4 @@
 - [ElevenLabs music limits](elevenlabs-music.md) — max 2 concurrent generations; avoid trademarked/"epic"-type words that trigger TOS rejection.
 - [DreamWalk Dream Engine](dreamwalk-dream-engine.md) — iTunes Search + lyrics.ovh + keyword mood/world analysis + LyricsClock + ElevenLabs narration architecture
 - [DreamWalk API proxy pattern](dreamwalk-api-proxy.md) — CORS-restricted APIs (Apple RSS trending, Musixmatch, Ticketmaster, ElevenLabs) must go through api-server proxy; iTunes Search is CORS-ok from browser
+- [Cyanite API plan limits](cyanite-plan-limits.md) — spotifyTrackSearch+audioFeatures works; spotifyTrack/freeTextSearch/audioAnalysisV6 require higher plan

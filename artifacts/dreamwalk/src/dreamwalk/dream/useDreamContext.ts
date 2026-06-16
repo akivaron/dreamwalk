@@ -3,7 +3,6 @@ import type { DreamContext, DreamContextState, MoodData, StemData } from "./type
 import type { DreamSong } from "./types";
 import { fetchLyrics } from "./api/lyrics";
 import { generateNarration } from "./api/narration";
-import { fetchConcerts } from "./api/concerts";
 import { fetchMoodFromCyanite } from "./api/mood";
 import { getFFTStemData } from "./api/stems";
 import { fetchItunesTrending, getSessionTrending, recordPlay } from "./trendingStore";
@@ -47,8 +46,6 @@ const DEFAULT_CONTEXT: DreamContext = {
   narrationEnabled: true,
   narrationAudioUrl: null,
   trends: [],
-  concert: null,
-  concertModeActive: false,
   worldId: "savana-valley",
   worldOverrides: {},
 };
@@ -108,38 +105,23 @@ export function useDreamContext() {
       const keywords = lyrics ? extractKeywords(lyrics.raw) : [];
       const themes = keywords.slice(0, 6);
       const importantLines = lyrics ? detectImportantLines(lyrics.lines) : [];
-
-      // Heuristic mood as baseline
       const heuristicMood = inferMood(keywords, song.title, song.artist);
 
       setState((prev) => ({ ...prev, loadingStep: "Feeling the atmosphere..." }));
 
-      // Cyanite mood analysis (parallel with narration + concerts + trending)
-      const cyaniteMoodPromise = fetchMoodFromCyanite(
-        song.artist,
-        song.title,
-        song.spotifyTrackId,
-      ).catch(() => null);
-
       const narrationText = buildNarrationText(song, heuristicMood, keywords);
-      const worldId = selectWorldId(keywords, heuristicMood);
-      const worldOverrides = buildWorldOverrides(keywords, heuristicMood);
 
-      const [narrationResult, concerts, trends, cyaniteMood] = await Promise.all([
+      const [narrationResult, trends, cyaniteMood] = await Promise.all([
         generateNarration(narrationText).catch(() => ({ text: narrationText, audioUrl: null })),
-        fetchConcerts(song.artist).catch(() => [] as Awaited<ReturnType<typeof fetchConcerts>>),
         fetchItunesTrending().catch(() => [] as Awaited<ReturnType<typeof fetchItunesTrending>>),
-        cyaniteMoodPromise,
+        fetchMoodFromCyanite(song.artist, song.title, song.spotifyTrackId).catch(() => null),
       ]);
 
       if (ctrl.signal.aborted) return;
 
-      // Merge: prefer Cyanite if available, else heuristic
       const mood: MoodData = cyaniteMood ?? heuristicMood;
-
-      // If Cyanite gave us richer data, update worldId + overrides with it
-      const finalWorldId = cyaniteMood ? selectWorldId(keywords, mood) : worldId;
-      const finalWorldOverrides = cyaniteMood ? buildWorldOverrides(keywords, mood) : worldOverrides;
+      const worldId = selectWorldId(keywords, mood);
+      const worldOverrides = buildWorldOverrides(keywords, mood);
 
       const session = getSessionTrending();
       const trendsMerged = [
@@ -154,7 +136,6 @@ export function useDreamContext() {
         artworkUrl: song.artworkUrl,
       });
 
-      const concert = concerts[0] ?? null;
       const stems: StemData = getFFTStemData();
 
       const context: DreamContext = {
@@ -173,10 +154,8 @@ export function useDreamContext() {
         narrationEnabled: true,
         narrationAudioUrl: narrationResult.audioUrl,
         trends: trendsMerged,
-        concert,
-        concertModeActive: false,
-        worldId: finalWorldId,
-        worldOverrides: finalWorldOverrides,
+        worldId,
+        worldOverrides,
       };
 
       setState({ context, loading: false, loadingStep: "", error: null, ready: true });
@@ -231,16 +210,6 @@ export function useDreamContext() {
     }));
   }, []);
 
-  const toggleConcertMode = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      context: {
-        ...prev.context,
-        concertModeActive: !prev.context.concertModeActive,
-      },
-    }));
-  }, []);
-
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
@@ -252,6 +221,5 @@ export function useDreamContext() {
     buildForSong,
     buildForCuratedTrack,
     toggleNarration,
-    toggleConcertMode,
   };
 }

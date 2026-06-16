@@ -20,14 +20,12 @@ import { Grass } from "./Grass";
 import { Birds } from "./Birds";
 import { Fireflies } from "./Fireflies";
 import { Waterfall } from "./Waterfall";
-import { ConcertOverlay } from "./ConcertOverlay";
 
 interface ExperienceProps {
   world: World;
   analyser: AnalyserNode | null;
   syncedLyrics?: SyncedLyricLine[];
   getAudioTime?: () => number;
-  concertModeActive?: boolean;
   onScreenshotReady: (fn: () => string) => void;
 }
 
@@ -36,7 +34,6 @@ export function Experience({
   analyser,
   syncedLyrics,
   getAudioTime,
-  concertModeActive,
   onScreenshotReady,
 }: ExperienceProps) {
   return (
@@ -70,8 +67,7 @@ export function Experience({
         <Birds />
         <Fireflies world={world} />
         <Particles world={world} />
-        <ConcertOverlay active={!!concertModeActive} />
-        <PostFX world={world} concertModeActive={!!concertModeActive} />
+        <PostFX world={world} />
         <ScreenshotHelper onReady={onScreenshotReady} />
       </Suspense>
     </Canvas>

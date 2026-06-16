@@ -6,21 +6,13 @@ import type { BloomEffect } from "postprocessing";
 import type { World } from "../types";
 import { audioLevels } from "../audio/audioStore";
 
-export function PostFX({
-  world,
-  concertModeActive,
-}: {
-  world: World;
-  concertModeActive?: boolean;
-}) {
+export function PostFX({ world }: { world: World }) {
   const bloomRef = useRef<BloomEffect>(null);
 
   useFrame(() => {
     if (bloomRef.current) {
-      const base = concertModeActive ? world.bloom * 1.4 : world.bloom * 0.5;
-      const reactive = concertModeActive
-        ? audioLevels.intensity * 0.4 + audioLevels.peak * 0.25
-        : audioLevels.intensity * 0.15 + audioLevels.peak * 0.08;
+      const base = world.bloom * 0.5;
+      const reactive = audioLevels.intensity * 0.15 + audioLevels.peak * 0.08;
       bloomRef.current.intensity = base + reactive;
     }
   });
@@ -30,11 +22,11 @@ export function PostFX({
       <Bloom
         ref={bloomRef}
         mipmapBlur
-        luminanceThreshold={concertModeActive ? 0.55 : 0.78}
+        luminanceThreshold={0.78}
         luminanceSmoothing={0.5}
-        intensity={concertModeActive ? world.bloom * 1.4 : world.bloom * 0.5}
+        intensity={world.bloom * 0.5}
       />
-      <Vignette offset={concertModeActive ? 0.15 : 0.22} darkness={concertModeActive ? 0.88 : 0.72} eskil={false} />
+      <Vignette offset={0.22} darkness={0.72} eskil={false} />
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
     </EffectComposer>
   );
