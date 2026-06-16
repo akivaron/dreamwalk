@@ -1077,293 +1077,6 @@ export function SongDetail({
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
           >
-            {/* ── Lyrics preview ── */}
-
-            {/* Track identity */}
-            <GlassCard className="p-5">
-              <p className="text-xl font-light leading-snug tracking-wide text-white">
-                {song.title}
-              </p>
-              <p className="mt-1 text-sm text-white/55 tracking-wider">{song.artist}</p>
-              {song.album && (
-                <p className="mt-0.5 text-xs text-white/35 tracking-wide">{song.album}</p>
-              )}
-            </GlassCard>
-
-            {/* Metadata pills */}
-            <GlassCard className="p-5 flex flex-col gap-3">
-              <h4 className="text-[10px] uppercase tracking-[0.4em] text-white/40">Details</h4>
-              {song.genre && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-white/45 tracking-wide">Genre</span>
-                  <span className="rounded-full border border-white/15 bg-white/8 px-3 py-0.5 text-[11px] text-white/70 tracking-wide">
-                    {song.genre}
-                  </span>
-                </div>
-              )}
-              {song.source && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-white/45 tracking-wide">Source</span>
-                  <span className="text-[11px] text-white/50 capitalize tracking-wide">
-                    {song.source === "musixmatch" ? "Musixmatch" : song.source === "itunes" ? "Apple Music" : "Curated"}
-                  </span>
-                </div>
-              )}
-              {audioDuration > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-white/45 tracking-wide">Preview</span>
-                  <span className="text-[11px] text-white/50 tracking-wide">{formatTime(audioDuration)}</span>
-                </div>
-              )}
-              {insights.mood.source && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-white/45 tracking-wide">Analysis</span>
-                  <span className="text-[11px] text-white/50 capitalize tracking-wide">
-                    {insights.mood.source === "cyanite" ? "Cyanite AI" : "Heuristic"}
-                  </span>
-                </div>
-              )}
-            </GlassCard>
-
-            {/* Musixmatch analytics */}
-            {!trackDetails.loading && (trackDetails.trackRating !== null || trackDetails.artistCountry) && (
-              <GlassCard className="p-5 flex flex-col gap-3">
-                <h4 className="text-[10px] uppercase tracking-[0.4em] text-white/40">Analytics</h4>
-
-                {trackDetails.artistCountry && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/45 tracking-wide">Origin</span>
-                    <span className="flex items-center gap-1.5 text-[11px] text-white/70 tracking-wide">
-                      <span>{countryFlag(trackDetails.artistCountry)}</span>
-                      <span>{COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry}</span>
-                    </span>
-                  </div>
-                )}
-
-                {trackDetails.trackRating !== null && (
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-xs text-white/45 tracking-wide">Popularity</span>
-                      <span className="text-[11px] text-white/60">{trackDetails.trackRating}/100</span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                      <motion.div
-                        className="h-full rounded-full bg-gradient-to-r from-amber-400/50 to-orange-400/70"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${trackDetails.trackRating}%` }}
-                        transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {trackDetails.trackLength !== null && trackDetails.trackLength > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/45 tracking-wide">Full Length</span>
-                    <span className="text-[11px] text-white/60 tracking-wide">{formatTime(trackDetails.trackLength)}</span>
-                  </div>
-                )}
-
-                {trackDetails.numFavourite !== null && trackDetails.numFavourite > 0 && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/45 tracking-wide">Favourites</span>
-                    <span className="text-[11px] text-white/60 tracking-wide">
-                      {trackDetails.numFavourite >= 1000
-                        ? `${(trackDetails.numFavourite / 1000).toFixed(1)}k`
-                        : String(trackDetails.numFavourite)}
-                    </span>
-                  </div>
-                )}
-
-                {trackDetails.explicit && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-white/45 tracking-wide">Content</span>
-                    <span className="rounded border border-red-400/30 bg-red-500/10 px-1.5 py-0.5 text-[9px] tracking-widest text-red-400/80">EXPLICIT</span>
-                  </div>
-                )}
-
-                {trackDetails.genres.length > 0 && (
-                  <div>
-                    <p className="mb-1.5 text-xs text-white/45 tracking-wide">MX Genres</p>
-                    <div className="flex flex-wrap gap-1">
-                      {trackDetails.genres.slice(0, 4).map((g) => (
-                        <span key={g} className="rounded-full border border-amber-400/15 bg-amber-500/8 px-2 py-0.5 text-[10px] text-amber-300/60 tracking-wide">
-                          {g}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </GlassCard>
-            )}
-
-            {/* Spotify / Apple links */}
-            <GlassCard className="p-5 flex flex-col gap-2">
-              <h4 className="text-[10px] uppercase tracking-[0.4em] text-white/40 mb-1">Listen On</h4>
-              {song.spotifyTrackId && (
-                <a
-                  href={`https://open.spotify.com/track/${song.spotifyTrackId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs tracking-widest text-white/70 transition-all hover:bg-white/10 hover:text-white"
-                >
-                  <span className="text-[#1DB954] text-base">●</span>
-                  Open in Spotify
-                </a>
-              )}
-              <a
-                href={`https://music.apple.com/search?term=${encodeURIComponent(`${song.title} ${song.artist}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs tracking-widest text-white/70 transition-all hover:bg-white/10 hover:text-white"
-              >
-                <span className="text-[#FC3C44] text-base">●</span>
-                Apple Music
-              </a>
-            </GlassCard>
-          </motion.aside>
-
-          {/* ════ CENTER: Hero + Player ════ */}
-          <motion.main
-            className="flex flex-col gap-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-          >
-            {/* Hero art banner */}
-            <div className="relative overflow-hidden rounded-3xl" style={{ minHeight: 260 }}>
-              {song.artworkUrl && (
-                <>
-                  <img
-                    src={largeArt}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover scale-110"
-                    style={{ filter: "blur(24px)", opacity: 0.55 }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#080c18] via-[#080c18]/40 to-transparent" />
-                </>
-              )}
-              <div className="relative z-10 flex h-full flex-col justify-end p-8">
-                {/* Animated artwork */}
-                <motion.div
-                  className="mb-6 flex justify-center"
-                  animate={isPlaying ? { scale: [1, 1.04, 1] } : { scale: 1 }}
-                  transition={{ duration: 2.8, repeat: isPlaying ? Infinity : 0, ease: "easeInOut" }}
-                >
-                  {song.artworkUrl ? (
-                    <img
-                      src={largeArt}
-                      alt={song.title}
-                      className="h-32 w-32 rounded-2xl object-cover shadow-[0_16px_60px_rgba(0,0,0,0.8)]"
-                    />
-                  ) : (
-                    <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-white/10 text-5xl">
-                      ♪
-                    </div>
-                  )}
-                </motion.div>
-
-                <h1 className="text-3xl font-light tracking-[0.06em] text-white drop-shadow-lg">
-                  {song.title}
-                </h1>
-                <p className="mt-1 text-base tracking-[0.15em] text-white/60">{song.artist}</p>
-              </div>
-            </div>
-
-            {/* Action buttons */}
-            <GlassCard className="p-6">
-              <div className="flex flex-wrap gap-3">
-                {/* Preview */}
-                {song.previewUrl ? (
-                  <motion.button
-                    onClick={togglePreview}
-                    className="flex items-center gap-2 rounded-full border border-white/30 bg-white/15 px-5 py-2.5 text-sm tracking-widest text-white backdrop-blur-md transition-all hover:bg-white/25"
-                    whileTap={{ scale: 0.96 }}
-                  >
-                    <span>{isPlaying ? "⏸" : "▶"}</span>
-                    <span>{isPlaying ? "Pause" : "Preview"}</span>
-                  </motion.button>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 text-sm tracking-widest text-white/35 cursor-not-allowed">
-                    <span>▶</span>
-                    <span>No Preview</span>
-                  </div>
-                )}
-
-                {/* Enter Dream */}
-                <motion.button
-                  onClick={() => onEnterDream(song)}
-                  className="flex items-center gap-2 rounded-full border border-white/40 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 px-5 py-2.5 text-sm tracking-widest text-white backdrop-blur-md transition-all hover:from-indigo-500/50 hover:to-purple-500/50 hover:border-white/60"
-                  whileTap={{ scale: 0.96 }}
-                >
-                  <Sparkles className="h-4 w-4" />
-                  <span>Enter Dream</span>
-                </motion.button>
-
-                {/* Save */}
-                <motion.button
-                  onClick={() => setIsSaved((s) => !s)}
-                  className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm tracking-widest text-white/70 transition-all hover:bg-white/10 hover:text-white"
-                  whileTap={{ scale: 0.96 }}
-                >
-                  <Heart className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
-                  <span>{isSaved ? "Saved" : "Save"}</span>
-                </motion.button>
-
-                {/* Share */}
-                <motion.button
-                  onClick={() => void handleShare()}
-                  className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm tracking-widest text-white/70 transition-all hover:bg-white/10 hover:text-white"
-                  whileTap={{ scale: 0.96 }}
-                >
-                  {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-                  <span>{copied ? "Copied!" : "Share"}</span>
-                </motion.button>
-              </div>
-
-              {/* Preview player */}
-              <div className="mt-5 space-y-3">
-                <WaveformBars isPlaying={isPlaying} />
-
-                {/* Progress bar */}
-                {song.previewUrl && (
-                  <div className="space-y-1.5">
-                    <div
-                      className="relative h-1.5 w-full cursor-pointer rounded-full bg-white/10 overflow-hidden"
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        seekTo((e.clientX - rect.left) / rect.width);
-                      }}
-                    >
-                      <motion.div
-                        className="absolute inset-y-0 left-0 rounded-full bg-white/70"
-                        style={{ width: `${progressRatio * 100}%` }}
-                        transition={{ ease: "linear" }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-[10px] tracking-widest text-white/40">
-                      <span>{formatTime(progress)}</span>
-                      <span>{audioDuration > 0 ? formatTime(audioDuration) : "0:30"}</span>
-                    </div>
-                  </div>
-                )}
-
-                {!song.previewUrl && (
-                  <div className="rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-center">
-                    <p className="text-sm text-white/50 tracking-wide">No official preview available.</p>
-                    <div className="mt-3 flex justify-center gap-3">
-                      <button
-                        onClick={() => onEnterDream(song)}
-                        className="rounded-full border border-white/20 bg-white/8 px-4 py-1.5 text-xs tracking-widest text-white/70 transition-all hover:bg-white/15 hover:text-white"
-                      >
-                        <Sparkles className="inline h-3.5 w-3.5 mr-1.5" />Enter Dream anyway
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </GlassCard>
-
             {/* Lyrics preview */}
             <GlassCard className="p-6">
               <h3 className="mb-4 text-[10px] uppercase tracking-[0.4em] text-white/40">
@@ -1495,14 +1208,14 @@ export function SongDetail({
                 </div>
               </GlassCard>
             )}
-          </motion.main>
+          </motion.div>
 
           {/* ════ RIGHT: Song Insights ════ */}
-          <motion.aside
+          <motion.div
             className="flex flex-col gap-4"
-            initial={{ opacity: 0, x: 24 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
+            transition={{ duration: 0.7, ease: "easeOut", delay: 0.25 }}
           >
             <GlassCard className="p-5">
               <h3 className="mb-4 text-[10px] uppercase tracking-[0.4em] text-white/40">
@@ -1720,116 +1433,73 @@ export function SongDetail({
                 ))}
               </GlassCard>
             )}
-          </motion.aside>
+            {/* MX Genres */}
+            {!trackDetails.loading && trackDetails.genres.length > 0 && (
+              <GlassCard className="p-5">
+                <h4 className="mb-3 text-[10px] uppercase tracking-[0.4em] text-white/40">MX Genres</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {trackDetails.genres.slice(0, 6).map((g) => (
+                    <span key={g} className="rounded-full border border-amber-400/15 bg-amber-500/8 px-2 py-0.5 text-[10px] text-amber-300/60 tracking-wide">{g}</span>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+          </motion.div>
         </div>
 
-        {/* ── About This Song — Mini Wiki ── */}
-        {(wiki.loading || wiki.songExtract || wiki.artistExtract) && (
+        {/* ── Artist Wiki ── */}
+        {(wiki.loading || wiki.artistExtract) && (
           <motion.section
-            className="mt-8"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
+            transition={{ duration: 0.7, delay: 0.3 }}
           >
             <GlassCard className="p-6 md:p-8">
-              {/* Header */}
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <BookOpen className="h-4 w-4 text-white/35" />
-                  <h2 className="text-[10px] uppercase tracking-[0.4em] text-white/40">About This Song</h2>
-                </div>
-                {wiki.songWikiUrl && (
-                  <a
-                    href={wiki.songWikiUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[10px] tracking-widest text-white/25 hover:text-white/50 transition-colors"
-                  >
-                    <span>Wikipedia</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
+              <div className="mb-6 flex items-center gap-2.5">
+                <BookOpen className="h-4 w-4 text-white/35" />
+                <h2 className="text-[10px] uppercase tracking-[0.4em] text-white/40">About the Artist</h2>
               </div>
-
               {wiki.loading ? (
                 <div className="space-y-3 animate-pulse">
                   <div className="h-3 w-full rounded-full bg-white/5" />
                   <div className="h-3 w-5/6 rounded-full bg-white/5" />
-                  <div className="h-3 w-4/6 rounded-full bg-white/5" />
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-[1fr_1px_320px]">
-                  {/* Song extract */}
-                  <div className="space-y-4">
-                    {wiki.songDescription && (
-                      <p className="text-[10px] uppercase tracking-[0.35em] text-indigo-300/50">{wiki.songDescription}</p>
-                    )}
-                    {wiki.songExtract ? (
-                      <p className="text-sm font-light leading-relaxed text-white/65 tracking-wide">{wiki.songExtract}</p>
-                    ) : (
-                      <p className="text-sm text-white/30 italic">No Wikipedia article found for this song.</p>
-                    )}
-
-                    {/* Key metadata pills */}
-                    <div className="flex flex-wrap gap-2 pt-1">
+              ) : wiki.artistExtract ? (
+                <div className="flex gap-5">
+                  {wiki.artistThumbnail && (
+                    <img src={wiki.artistThumbnail} alt={song.artist}
+                      className="h-20 w-20 shrink-0 rounded-2xl object-cover opacity-80 hidden sm:block" />
+                  )}
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-light text-white/80 tracking-wide">{song.artist}</p>
+                      {wiki.artistDescription && (
+                        <span className="text-[10px] text-white/35 tracking-wide">— {wiki.artistDescription}</span>
+                      )}
+                      {wiki.artistWikiUrl && (
+                        <a href={wiki.artistWikiUrl} target="_blank" rel="noopener noreferrer"
+                          className="ml-auto flex items-center gap-1 text-[10px] tracking-widest text-white/25 hover:text-white/50 transition-colors">
+                          <span>Wikipedia</span><ExternalLink className="h-2.5 w-2.5" />
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-sm font-light leading-relaxed text-white/55 tracking-wide">{wiki.artistExtract}</p>
+                    <div className="flex flex-wrap gap-2 pt-2">
                       {song.genre && (
-                        <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">
-                          {song.genre}
-                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">{song.genre}</span>
                       )}
                       {song.album && song.album !== song.title && (
-                        <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">
-                          {song.album}
-                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">{song.album}</span>
                       )}
                       {trackDetails.artistCountry && (
                         <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">
                           {countryFlag(trackDetails.artistCountry)} {COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry}
                         </span>
                       )}
-                      {trackDetails.genres.slice(0, 2).map((g) => (
-                        <span key={g} className="rounded-full border border-indigo-400/15 bg-indigo-400/5 px-3 py-1 text-[10px] tracking-widest text-indigo-300/50">
-                          {g}
-                        </span>
-                      ))}
                     </div>
                   </div>
-
-                  {/* Divider */}
-                  <div className="hidden md:block bg-white/6 w-px" />
-
-                  {/* Artist section */}
-                  {wiki.artistExtract && (
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        {wiki.artistThumbnail && (
-                          <img
-                            src={wiki.artistThumbnail}
-                            alt={song.artist}
-                            className="h-14 w-14 shrink-0 rounded-2xl object-cover opacity-80"
-                          />
-                        )}
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <p className="text-[10px] uppercase tracking-[0.35em] text-white/35">About the artist</p>
-                            {wiki.artistWikiUrl && (
-                              <a href={wiki.artistWikiUrl} target="_blank" rel="noopener noreferrer"
-                                className="text-white/20 hover:text-white/45 transition-colors">
-                                <ExternalLink className="h-2.5 w-2.5" />
-                              </a>
-                            )}
-                          </div>
-                          <p className="text-sm font-light text-white/80 tracking-wide">{song.artist}</p>
-                          {wiki.artistDescription && (
-                            <p className="text-[10px] text-white/35 tracking-wide mt-0.5">{wiki.artistDescription}</p>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm font-light leading-relaxed text-white/55 tracking-wide">{wiki.artistExtract}</p>
-                    </div>
-                  )}
                 </div>
-              )}
+              ) : null}
             </GlassCard>
           </motion.section>
         )}
