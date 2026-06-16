@@ -1,25 +1,62 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Building2, Check, Cloud, CloudRain, Disc, Droplets, Flame, Globe,
+  Heart, Home, Moon, Mountain, Music, Music2, Route, Search, Share2,
+  Smile, Snowflake, Sparkles, Stars, Sun, Sunrise, TreePine, User,
+  Waves, Zap,
+} from "lucide-react";
 import type { DreamSong, LyricsData, MoodData, TrendingTrack } from "../dream/types";
 import { fetchLyrics } from "../dream/api/lyrics";
 import { extractKeywords, inferMood } from "../dream/keywordAnalysis";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const MOOD_EMOJI: Record<string, string> = {
-  hopeful: "😊", melancholic: "😔", epic: "⚡", calm: "🌊",
-  energetic: "🔥", dark: "🌑", romantic: "💗", nostalgic: "🌅",
-};
 const MOOD_LABEL: Record<string, string> = {
   hopeful: "Hopeful", melancholic: "Melancholic", epic: "Epic", calm: "Calm",
   energetic: "Energetic", dark: "Dark", romantic: "Romantic", nostalgic: "Nostalgic",
 };
-const THEME_EMOJI: Record<string, string> = {
-  ocean: "🌊", stars: "✨", night: "🌙", rain: "🌧️", fire: "🔥",
-  snow: "❄️", mountain: "⛰️", home: "🏠", city: "🌆", heaven: "☁️",
-  love: "💗", loneliness: "🌌", hope: "🌅", sadness: "💧", joy: "☀️",
-  journey: "🛤️", aurora: "🌌", forest: "🌲", desert: "🏜️",
-};
+
+function MoodIcon({ mood, className = "w-4 h-4" }: { mood: string; className?: string }) {
+  const props = { className };
+  switch (mood) {
+    case "hopeful":    return <Smile {...props} />;
+    case "melancholic":return <CloudRain {...props} />;
+    case "epic":       return <Zap {...props} />;
+    case "calm":       return <Waves {...props} />;
+    case "energetic":  return <Flame {...props} />;
+    case "dark":       return <Moon {...props} />;
+    case "romantic":   return <Heart {...props} />;
+    case "nostalgic":  return <Sunrise {...props} />;
+    default:           return <Sparkles {...props} />;
+  }
+}
+
+function ThemeIcon({ theme, className = "w-3 h-3" }: { theme: string; className?: string }) {
+  const props = { className };
+  switch (theme) {
+    case "ocean":      return <Waves {...props} />;
+    case "stars":      return <Stars {...props} />;
+    case "night":      return <Moon {...props} />;
+    case "rain":       return <CloudRain {...props} />;
+    case "fire":       return <Flame {...props} />;
+    case "snow":       return <Snowflake {...props} />;
+    case "mountain":   return <Mountain {...props} />;
+    case "home":       return <Home {...props} />;
+    case "city":       return <Building2 {...props} />;
+    case "heaven":     return <Cloud {...props} />;
+    case "love":       return <Heart {...props} />;
+    case "loneliness": return <User {...props} />;
+    case "hope":       return <Sunrise {...props} />;
+    case "sadness":    return <Droplets {...props} />;
+    case "joy":        return <Sun {...props} />;
+    case "journey":    return <Route {...props} />;
+    case "aurora":     return <Sparkles {...props} />;
+    case "forest":     return <TreePine {...props} />;
+    case "desert":     return <Sun {...props} />;
+    default:           return <Music {...props} />;
+  }
+}
 
 function energyLabel(e: number) {
   if (e > 0.7) return "High";
@@ -148,7 +185,7 @@ function useTrackDetails(song: DreamSong): TrackDetails {
 // ─── Country helpers ──────────────────────────────────────────────────────────
 
 function countryFlag(code: string): string {
-  if (!code || code.length !== 2) return "🌍";
+  if (!code || code.length !== 2) return "";
   return [...code.toUpperCase()].map((c) => String.fromCodePoint(c.charCodeAt(0) + 127397)).join("");
 }
 
@@ -513,7 +550,7 @@ function EndModal({
         exit={{ scale: 0.9, y: 20 }}
         transition={{ type: "spring", damping: 22, stiffness: 260 }}
       >
-        <div className="mb-2 text-4xl">🎵</div>
+        <Music2 className="mx-auto mb-3 h-10 w-10 text-white/50" />
         <h3 className="text-xl font-light tracking-widest text-white">
           Continue the journey.
         </h3>
@@ -525,13 +562,13 @@ function EndModal({
             onClick={onEnterDream}
             className="flex items-center justify-center gap-2 rounded-full border border-white/30 bg-white/15 px-6 py-3 text-sm tracking-widest text-white backdrop-blur-md transition-all hover:bg-white/25 hover:border-white/50"
           >
-            <span>✨</span> Enter Dream
+            <Sparkles className="h-4 w-4" /> Enter Dream
           </button>
           <button
             onClick={onExplore}
             className="flex items-center justify-center gap-2 rounded-full border border-white/15 bg-transparent px-6 py-3 text-sm tracking-widest text-white/70 transition-all hover:text-white hover:border-white/30"
           >
-            <span>🔍</span> Explore Another Song
+            <Search className="h-4 w-4" /> Explore Another Song
           </button>
         </div>
       </motion.div>
@@ -649,7 +686,6 @@ export function SongDetail({
   };
 
   const progressRatio = audioDuration > 0 ? progress / audioDuration : 0;
-  const moodEmoji = MOOD_EMOJI[insights.mood.primary] ?? "✨";
   const moodLbl = MOOD_LABEL[insights.mood.primary] ?? insights.mood.primary;
   const energyPct = Math.round(insights.mood.energy * 100);
   const lyricsPreview = insights.lyrics?.synced.slice(0, 6) ?? [];
@@ -976,7 +1012,7 @@ export function SongDetail({
                   className="flex items-center gap-2 rounded-full border border-white/40 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 px-5 py-2.5 text-sm tracking-widest text-white backdrop-blur-md transition-all hover:from-indigo-500/50 hover:to-purple-500/50 hover:border-white/60"
                   whileTap={{ scale: 0.96 }}
                 >
-                  <span>✨</span>
+                  <Sparkles className="h-4 w-4" />
                   <span>Enter Dream</span>
                 </motion.button>
 
@@ -986,7 +1022,7 @@ export function SongDetail({
                   className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm tracking-widest text-white/70 transition-all hover:bg-white/10 hover:text-white"
                   whileTap={{ scale: 0.96 }}
                 >
-                  <span>{isSaved ? "♥" : "♡"}</span>
+                  <Heart className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
                   <span>{isSaved ? "Saved" : "Save"}</span>
                 </motion.button>
 
@@ -996,7 +1032,7 @@ export function SongDetail({
                   className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm tracking-widest text-white/70 transition-all hover:bg-white/10 hover:text-white"
                   whileTap={{ scale: 0.96 }}
                 >
-                  <span>{copied ? "✓" : "↗"}</span>
+                  {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
                   <span>{copied ? "Copied!" : "Share"}</span>
                 </motion.button>
               </div>
@@ -1036,7 +1072,7 @@ export function SongDetail({
                         onClick={() => onEnterDream(song)}
                         className="rounded-full border border-white/20 bg-white/8 px-4 py-1.5 text-xs tracking-widest text-white/70 transition-all hover:bg-white/15 hover:text-white"
                       >
-                        ✨ Enter Dream anyway
+                        <Sparkles className="inline h-3.5 w-3.5 mr-1.5" />Enter Dream anyway
                       </button>
                     </div>
                   </div>
@@ -1070,7 +1106,7 @@ export function SongDetail({
                       transition={{ delay: i * 0.07 }}
                     >
                       <span className="mt-0.5 shrink-0" style={{ color: line.type === "chorus" ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.22)" }}>
-                        {line.type === "chorus" ? "◈" : "♪"}
+                        {line.type === "chorus" ? <Disc className="h-3 w-3" /> : <Music className="h-3 w-3" />}
                       </span>
                       <span>{line.text}</span>
                     </motion.p>
@@ -1147,7 +1183,7 @@ export function SongDetail({
                   <div>
                     <p className="mb-1.5 text-[10px] uppercase tracking-[0.3em] text-white/35">Mood</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl">{moodEmoji}</span>
+                      <MoodIcon mood={insights.mood.primary} className="h-6 w-6 text-white/80" />
                       <span className="text-sm tracking-wide text-white/80">{moodLbl}</span>
                     </div>
                   </div>
@@ -1183,7 +1219,8 @@ export function SongDetail({
                             key={t}
                             className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] tracking-wide text-white/65"
                           >
-                            {THEME_EMOJI[t] ?? "🎵"} {t.charAt(0).toUpperCase() + t.slice(1)}
+                            <ThemeIcon theme={t} className="h-3 w-3" />
+                            {t.charAt(0).toUpperCase() + t.slice(1)}
                           </span>
                         ))}
                       </div>
@@ -1267,7 +1304,7 @@ export function SongDetail({
                     className="mt-2 w-full rounded-2xl border border-white/20 bg-gradient-to-br from-indigo-500/25 to-purple-600/25 py-4 text-sm tracking-[0.3em] text-white/90 backdrop-blur-md transition-all hover:from-indigo-500/40 hover:to-purple-600/40 hover:border-white/40"
                     whileTap={{ scale: 0.97 }}
                   >
-                    ✨ Enter Dream
+                    <Sparkles className="inline h-4 w-4 mr-2" />Enter Dream
                   </motion.button>
                 </div>
               )}
@@ -1293,7 +1330,7 @@ export function SongDetail({
                   </div>
                   {insights.mood.secondary && (
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-base">{MOOD_EMOJI[insights.mood.secondary] ?? "✨"}</span>
+                      <MoodIcon mood={insights.mood.secondary ?? ""} className="h-4 w-4 text-white/60" />
                       <p className="text-[11px] tracking-wide text-white/40">
                         {MOOD_LABEL[insights.mood.secondary] ?? insights.mood.secondary} undertone
                       </p>
