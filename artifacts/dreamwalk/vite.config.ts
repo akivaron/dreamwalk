@@ -31,7 +31,23 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    runtimeErrorOverlay(),
+    runtimeErrorOverlay({
+      // DreamWalk is a WebGL (React Three Fiber) experience. In GPU-less
+      // sandboxes (e.g. the Replit preview/test browsers) the WebGL context
+      // fails to initialize or is lost. The app handles this gracefully with
+      // an in-app fallback (WebGLBoundary), so these specific errors should
+      // not surface a dev runtime-error overlay. All other errors still show.
+      filter: (error) => {
+        const haystack = `${error?.message ?? ""}\n${error?.stack ?? ""}`;
+        const benign =
+          /Error creating WebGL context/i.test(haystack) ||
+          /Converting circular structure to JSON/i.test(haystack) ||
+          /WebGLRenderer/i.test(haystack) ||
+          /THREE\.WebGL/i.test(haystack) ||
+          /Context Lost/i.test(haystack);
+        return !benign;
+      },
+    }),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [

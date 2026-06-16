@@ -53,8 +53,12 @@ export default function App() {
     setPhase("exiting");
     transitionTimer.current = setTimeout(() => {
       transitionTimer.current = null;
-      engine.stop();
-      resetAudioLevels();
+      try {
+        engine.stop();
+        resetAudioLevels();
+      } catch {
+        /* ignore cleanup failures so the phase always resets */
+      }
       setPhase("title");
     }, 1800);
   }, [engine, clearTransition]);
