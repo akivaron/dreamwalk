@@ -1,7 +1,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useMemo } from "react";
 import * as THREE from "three";
-import { audioLevels, dreamEvents } from "../audio/audioStore";
+import { audioLevels, dreamEvents, stemLevels } from "../audio/audioStore";
 import { terrainHeight } from "./terrainField";
 import type { World } from "../types";
 import { mulberry32 } from "../rng";
@@ -682,6 +682,15 @@ export function CameraRig({ world }: { world: World }) {
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetCamX, lerpSpeed);
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, safeCamY, lerpSpeed);
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCamZ, lerpSpeed);
+
+    // drums stem → camera micro-shake on strong transients
+    const drumPeak = stemLevels.drums;
+    if (drumPeak > 0.6) {
+      const shakeAmp = (drumPeak - 0.6) * 0.35;
+      camera.position.x += (Math.random() - 0.5) * shakeAmp;
+      camera.position.y += (Math.random() - 0.5) * shakeAmp * 0.4;
+      camera.position.z += (Math.random() - 0.5) * shakeAmp;
+    }
 
     // Camera always focus looks at the Traveler's upper torso/head
     const targetLookAt = new THREE.Vector3(pos.current.x, currentGround.current + jumpY.current + 1.2, pos.current.z);

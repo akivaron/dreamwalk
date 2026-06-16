@@ -4,7 +4,7 @@ import { Bloom, EffectComposer, Vignette, ToneMapping } from "@react-three/postp
 import { ToneMappingMode } from "postprocessing";
 import type { BloomEffect } from "postprocessing";
 import type { World } from "../types";
-import { audioLevels } from "../audio/audioStore";
+import { audioLevels, stemLevels } from "../audio/audioStore";
 
 export function PostFX({ world }: { world: World }) {
   const bloomRef = useRef<BloomEffect>(null);
@@ -12,7 +12,9 @@ export function PostFX({ world }: { world: World }) {
   useFrame(() => {
     if (bloomRef.current) {
       const base = world.bloom * 0.5;
-      const reactive = audioLevels.intensity * 0.15 + audioLevels.peak * 0.08;
+      // vocals → sustained bloom glow; bass → percussive bloom punch; peak → transient
+      const reactive = audioLevels.intensity * 0.08 + audioLevels.peak * 0.06
+        + stemLevels.vocals * 0.14 + stemLevels.bass * 0.07;
       bloomRef.current.intensity = base + reactive;
     }
   });

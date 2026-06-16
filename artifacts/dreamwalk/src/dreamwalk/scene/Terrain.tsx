@@ -3,7 +3,7 @@ import { useMemo, useRef, useEffect } from "react";
 import * as THREE from "three";
 import type { World } from "../types";
 import { mulberry32 } from "../rng";
-import { audioLevels } from "../audio/audioStore";
+import { audioLevels, stemLevels } from "../audio/audioStore";
 import { terrainHeight, TERRAIN_SIZE } from "./terrainField";
 import { makeGroundNoiseTexture, makeFoamTexture, makeWaterNoiseTexture } from "./textures";
 
@@ -255,7 +255,8 @@ export function Terrain({ world }: { world: World }) {
     const t = audioLevels.time;
     const g = waterMeshRef.current.geometry as THREE.PlaneGeometry;
     const pos = g.attributes.position as THREE.BufferAttribute;
-    const amp = 0.4 + audioLevels.level * 0.6;
+    // bass stem → water wave amplitude (deeper bass = bigger waves)
+    const amp = 0.4 + audioLevels.level * 0.35 + stemLevels.bass * 0.5;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const z = pos.getZ(i);

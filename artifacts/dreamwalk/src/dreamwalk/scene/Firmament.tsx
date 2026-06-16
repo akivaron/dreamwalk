@@ -2,7 +2,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { World } from "../types";
-import { audioLevels, dreamEvents } from "../audio/audioStore";
+import { audioLevels, dreamEvents, stemLevels } from "../audio/audioStore";
 import { makeGlowTexture } from "./textures";
 import { mulberry32 } from "../rng";
 
@@ -138,9 +138,11 @@ function Aurora({ world }: { world: World }) {
   );
   useFrame(() => {
     mat.uniforms.uTime.value = audioLevels.time;
-    const chorusBump = dreamEvents.chorusIntensity * 0.45;
-    const vocalGlow = dreamEvents.emotionalIntensity * 0.3;
-    mat.uniforms.uIntensity.value = audioLevels.intensity + chorusBump + vocalGlow;
+    const chorusBump = dreamEvents.chorusIntensity * 0.35;
+    // vocals stem → aurora glow intensity; instruments → subtle shimmer
+    const vocalGlow = stemLevels.vocals * 0.55 + dreamEvents.emotionalIntensity * 0.2;
+    const instrShimmer = stemLevels.instruments * 0.15;
+    mat.uniforms.uIntensity.value = audioLevels.intensity * 0.5 + chorusBump + vocalGlow + instrShimmer;
   });
   return (
     <group position={[0, 240, -460]} rotation={[-0.5, 0, 0]}>

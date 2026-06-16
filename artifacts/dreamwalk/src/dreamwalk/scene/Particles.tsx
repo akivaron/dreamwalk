@@ -4,7 +4,7 @@ import * as THREE from "three";
 import type { World } from "../types";
 import { mulberry32 } from "../rng";
 import { makeGlowTexture } from "./textures";
-import { audioLevels, dreamEvents } from "../audio/audioStore";
+import { audioLevels, dreamEvents, stemLevels } from "../audio/audioStore";
 
 const COUNT = 1400;
 const SPREAD_XZ = 160;
@@ -41,10 +41,11 @@ export function Particles({ world }: { world: World }) {
     const baseSpeed = embers ? 6 : snow ? 4 : 2.4;
 
     const chorusMult = 1 + dreamEvents.chorusIntensity * 1.6;
-    const drumShake = dreamEvents.isChorus ? dreamEvents.chorusIntensity * 0.4 : 0;
+    // drums stem → particle turbulence/shake; vocals stem → sway width
+    const drumShake = stemLevels.drums * 0.55 + (dreamEvents.isChorus ? dreamEvents.chorusIntensity * 0.2 : 0);
 
-    const speed = baseSpeed * (1 + audioLevels.level * 1.6) * chorusMult;
-    const sway = 0.6 + audioLevels.mid * 1.5 + dreamEvents.bridgeIntensity * 0.8;
+    const speed = baseSpeed * (1 + audioLevels.level * 1.2 + stemLevels.drums * 0.6) * chorusMult;
+    const sway = 0.6 + stemLevels.vocals * 1.8 + audioLevels.mid * 0.8 + dreamEvents.bridgeIntensity * 0.8;
     const t = audioLevels.time;
 
     for (let i = 0; i < COUNT; i++) {
@@ -67,8 +68,9 @@ export function Particles({ world }: { world: World }) {
     if (matRef.current) {
       const sizeMult = 1 + dreamEvents.chorusIntensity * 0.6;
       const opacityMult = 1 + dreamEvents.emotionalIntensity * 0.35;
-      matRef.current.size = (embers ? 2.4 : 1.8) * (0.7 + audioLevels.level * 1.4) * sizeMult;
-      matRef.current.opacity = Math.min(0.95, (0.4 + audioLevels.level * 0.5) * opacityMult);
+      // vocals stem → particle size; drums stem → opacity pulse
+      matRef.current.size = (embers ? 2.4 : 1.8) * (0.7 + audioLevels.level * 0.9 + stemLevels.vocals * 0.7) * sizeMult;
+      matRef.current.opacity = Math.min(0.95, (0.4 + audioLevels.level * 0.35 + stemLevels.drums * 0.2) * opacityMult);
     }
   });
 

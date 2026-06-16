@@ -116,15 +116,31 @@ function classifyLines(
   const emotionalSet = new Set(
     detectImportantLines(timed.map((l) => l.text)).map((l) => l.toLowerCase().trim()),
   );
+
+  // Structural repeat-pattern heuristic: when source has no section tags,
+  // lines that repeat 2+ times across the track are almost certainly chorus lines.
+  const repeatCount = new Map<string, number>();
+  for (const l of timed) {
+    const low = l.text.toLowerCase().trim();
+    repeatCount.set(low, (repeatCount.get(low) ?? 0) + 1);
+  }
+  // threshold: ≥2 occurrences, or 1/8 of total lines (whichever is lower, min 2)
+  const repeatThreshold = Math.max(2, Math.min(2, Math.floor(timed.length / 8)));
+  const noSectionTags = chorusSet.size === 0 && bridgeSet.size === 0;
+
   return timed.map((l) => {
     const low = l.text.toLowerCase().trim();
-    const type: SyncedLyricLine["type"] = chorusSet.has(low)
+    let type: SyncedLyricLine["type"] = chorusSet.has(low)
       ? "chorus"
       : bridgeSet.has(low)
       ? "bridge"
       : outroSet.has(low)
       ? "outro"
       : "verse";
+    // Fallback: no section tags → use repeat frequency to infer chorus
+    if (type === "verse" && noSectionTags && (repeatCount.get(low) ?? 0) >= repeatThreshold) {
+      type = "chorus";
+    }
     return { time: l.time, text: l.text, type, isEmotional: emotionalSet.has(low) };
   });
 }
