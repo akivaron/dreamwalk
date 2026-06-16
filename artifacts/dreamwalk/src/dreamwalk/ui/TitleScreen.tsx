@@ -44,6 +44,7 @@ export function TitleScreen({
   }, []);
 
   const togglePreview = (track: TrackDef) => {
+    if (!track.file) return;
     if (!previewRef.current) {
       previewRef.current = new Audio();
       previewRef.current.loop = true;
@@ -162,28 +163,43 @@ export function TitleScreen({
                           : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
                       }`}
                     >
-                      <span className="min-w-0">
-                        <span className="block truncate text-lg font-light tracking-wide text-white">
-                          {track.title}
-                        </span>
-                        <span className="block truncate text-sm tracking-wide text-white/55">
-                          {track.artist}
-                        </span>
-                      </span>
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => { e.stopPropagation(); togglePreview(track); }}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); togglePreview(track); } }}
-                        className="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white/60 hover:text-white"
-                        aria-label={previewing === track.id ? "Stop preview" : "Preview"}
-                      >
-                        {previewing === track.id ? (
-                          <span className="block h-3 w-3 bg-current" />
+                      <span className="flex min-w-0 items-center gap-3">
+                        {track.artworkUrl ? (
+                          <img
+                            src={track.artworkUrl}
+                            alt={track.title}
+                            className="h-10 w-10 shrink-0 rounded-lg object-cover opacity-90"
+                          />
                         ) : (
-                          <span className="ml-0.5 block h-0 w-0 border-y-[6px] border-l-[10px] border-y-transparent border-l-current" />
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/8 text-white/20">
+                            <span className="block h-4 w-4 rounded-full border border-current" />
+                          </span>
                         )}
+                        <span className="min-w-0">
+                          <span className="block truncate text-base font-light tracking-wide text-white">
+                            {track.title}
+                          </span>
+                          <span className="block truncate text-sm tracking-wide text-white/55">
+                            {track.artist}
+                          </span>
+                        </span>
                       </span>
+                      {track.file && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => { e.stopPropagation(); togglePreview(track); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); togglePreview(track); } }}
+                          className="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white/60 hover:text-white"
+                          aria-label={previewing === track.id ? "Stop preview" : "Preview"}
+                        >
+                          {previewing === track.id ? (
+                            <span className="block h-3 w-3 bg-current" />
+                          ) : (
+                            <span className="ml-0.5 block h-0 w-0 border-y-[6px] border-l-[10px] border-y-transparent border-l-current" />
+                          )}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

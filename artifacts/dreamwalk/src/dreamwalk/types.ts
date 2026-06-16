@@ -47,6 +47,7 @@ export interface TrackDef {
   id: string;
   title: string;
   artist: string;
-  file: string;
+  file: string | null;
+  artworkUrl?: string;
   suggestedWorld: string;
 }

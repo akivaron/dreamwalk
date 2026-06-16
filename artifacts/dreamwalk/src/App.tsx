@@ -8,6 +8,7 @@ import { Hud } from "./dreamwalk/ui/Hud";
 import { WebGLBoundary } from "./dreamwalk/ui/WebGLBoundary";
 import { DreamLoadingScreen } from "./dreamwalk/ui/DreamLoadingScreen";
 import { TRACKS } from "./dreamwalk/tracks";
+import { useCuratedSongs } from "./dreamwalk/dream/useCuratedSongs";
 import { WORLDS } from "./dreamwalk/worlds";
 import { useAudioEngine } from "./dreamwalk/audio/useAudioEngine";
 import { resetAudioLevels, dreamEvents } from "./dreamwalk/audio/audioStore";
@@ -37,8 +38,9 @@ export default function App() {
   const autoEnterRef = useRef(false);
 
   const dream = useDreamContext();
+  const curatedSongs = useCuratedSongs();
 
-  const curatedTrack = TRACKS.find((t) => t.id === trackId) ?? TRACKS[0];
+  const curatedTrack = curatedSongs.find((t) => t.id === trackId) ?? curatedSongs[0] ?? TRACKS[0];
 
   const activeWorld =
     songMode === "dream" && dream.ready
@@ -75,12 +77,12 @@ export default function App() {
     (id: string) => {
       setSongMode("curated");
       setTrackId(id);
-      const t = TRACKS.find((x) => x.id === id);
+      const t = curatedSongs.find((x) => x.id === id);
       if (t) {
         dream.buildForCuratedTrack(id, t.title, t.artist, t.suggestedWorld);
       }
     },
-    [dream],
+    [dream, curatedSongs],
   );
 
   const handleSelectDreamSong = useCallback(
@@ -193,7 +195,7 @@ export default function App() {
       playNarration();
     }
 
-    if (activeAudioFile) void engine.loadAndPlay(activeAudioFile);
+    if (activeAudioFile) void engine.loadAndPlay(activeAudioFile as string);
     transitionTimer.current = setTimeout(() => {
       transitionTimer.current = null;
       setPhase((p) => (p === "entering" ? "experience" : p));
@@ -325,7 +327,7 @@ export default function App() {
       <AnimatePresence>
         {phase === "title" && (
           <TitleScreen
-            tracks={TRACKS}
+            tracks={curatedSongs}
             trackId={trackId}
             worldId={activeWorld.id}
             onSelectTrack={handleSelectTrack}

@@ -1,34 +1,39 @@
 import type { TrackDef } from "./types";
 
-const base = import.meta.env.BASE_URL;
-
 export const TRACKS: TrackDef[] = [
   {
-    id: "golden-hour",
-    title: "Golden Hour",
-    artist: "Auralune",
-    file: `${base}audio/golden-hour.mp3`,
+    id: "blinding-lights",
+    title: "Blinding Lights",
+    artist: "The Weeknd",
+    file: null,
     suggestedWorld: "savana-valley",
   },
   {
-    id: "moonlit-tide",
-    title: "Moonlit Tide",
-    artist: "Sela Voss",
-    file: `${base}audio/moonlit-tide.mp3`,
+    id: "as-it-was",
+    title: "As It Was",
+    artist: "Harry Styles",
+    file: null,
     suggestedWorld: "savana-valley",
   },
   {
-    id: "ascension",
-    title: "Ascension",
-    artist: "Orenda Choir",
-    file: `${base}audio/ascension.mp3`,
+    id: "golden-hour-jvke",
+    title: "golden hour",
+    artist: "JVKE",
+    file: null,
     suggestedWorld: "savana-valley",
   },
   {
-    id: "aurora-dreams",
-    title: "Aurora Dreams",
-    artist: "Nyx Avalon",
-    file: `${base}audio/aurora-dreams.mp3`,
+    id: "levitating",
+    title: "Levitating",
+    artist: "Dua Lipa",
+    file: null,
+    suggestedWorld: "savana-valley",
+  },
+  {
+    id: "flowers",
+    title: "Flowers",
+    artist: "Miley Cyrus",
+    file: null,
     suggestedWorld: "savana-valley",
   },
 ];

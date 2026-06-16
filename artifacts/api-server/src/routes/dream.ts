@@ -773,4 +773,50 @@ router.get("/track-details", async (req: Request, res: Response) => {
   }
 });
 
+// ─── /api/curated — hand-picked popular songs via iTunes lookup ───────────────
+
+const CURATED_QUERIES = [
+  { q: "Blinding Lights The Weeknd", world: "savana-valley" },
+  { q: "As It Was Harry Styles", world: "savana-valley" },
+  { q: "Golden Hour JVKE", world: "savana-valley" },
+  { q: "Levitating Dua Lipa", world: "savana-valley" },
+  { q: "Flowers Miley Cyrus", world: "savana-valley" },
+];
+
+router.get("/curated", async (_req: Request, res: Response) => {
+  try {
+    const results = await Promise.all(
+      CURATED_QUERIES.map(async ({ q, world }) => {
+        const r = await fetch(
+          `https://itunes.apple.com/search?${new URLSearchParams({
+            term: q,
+            media: "music",
+            entity: "song",
+            limit: "1",
+          })}`,
+          { signal: AbortSignal.timeout(7000) },
+        );
+        if (!r.ok) return null;
+        const data = (await r.json()) as { results?: ItunesSearchResult[] };
+        const t = data.results?.[0];
+        if (!t) return null;
+        const artwork = (t.artworkUrl100 ?? "").replace("100x100", "300x300");
+        return {
+          id: String(t.trackId ?? q),
+          title: t.trackName ?? q,
+          artist: t.artistName ?? "",
+          file: t.previewUrl ?? null,
+          artworkUrl: artwork,
+          suggestedWorld: world,
+        };
+      }),
+    );
+    const tracks = results.filter(Boolean);
+    res.json({ tracks });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: `curated failed: ${msg.slice(0, 200)}` });
+  }
+});
+
 export default router;
