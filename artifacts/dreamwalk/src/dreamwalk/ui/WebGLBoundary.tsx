@@ -17,7 +17,14 @@ function detectWebGL(): boolean {
       canvas.getContext("webgl2") ??
       canvas.getContext("webgl") ??
       canvas.getContext("experimental-webgl");
-    return Boolean(gl);
+    if (!gl) return false;
+    // Release the probe context immediately. Holding an extra WebGL context can
+    // cause a constrained sandbox to lose an existing context when the real
+    // R3F renderer creates its own.
+    (gl as WebGLRenderingContext)
+      .getExtension("WEBGL_lose_context")
+      ?.loseContext();
+    return true;
   } catch {
     return false;
   }

@@ -11,9 +11,16 @@ Any React Three Fiber `<Canvas>` will fail to initialize there. It renders fine 
 real user browsers.
 
 ## The crash this caused (and the fix)
-**Rule:** A graceful in-app fallback is necessary but NOT sufficient to stop the dev
-crash overlay. The fix that actually works is the runtime-error plugin's `filter` option
-in `vite.config.ts` — suppress the benign WebGL/serialization error signatures there.
+**Rule:** TWO independent mechanisms must both be neutralized — the runtime-error plugin
+overlay AND the raw uncaught window error. Use BOTH: (1) the plugin's `filter` option in
+`vite.config.ts` to suppress the overlay, AND (2) a capture-phase `window` 'error'/
+'unhandledrejection' guard (DEV-only, e.g. `devErrorGuard.ts`) that calls
+`preventDefault()+stopImmediatePropagation()` for the benign signatures so the error is
+not seen as *uncaught*. The `filter` ALONE is insufficient: it stops the overlay and the
+`[RUNTIME_ERROR]` server log, but Replit's separate browser-console crash detection still
+fires on the uncaught exception and regenerates the "artifact crashed" report. Also free
+the WebGL probe context (`WEBGL_lose_context.loseContext()`) so a leaked second context
+doesn't itself trigger "Context Lost" in constrained sandboxes.
 
 **Why:** Even with a `WebGLBoundary` that fails closed, two unavoidable window-level
 errors still fire in a no-GPU browser: `Error creating WebGL context` (thrown by THREE's
