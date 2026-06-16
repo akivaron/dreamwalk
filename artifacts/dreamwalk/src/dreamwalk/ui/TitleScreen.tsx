@@ -1,29 +1,39 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import type { TrackDef, World } from "../types";
+import type { TrackDef } from "../types";
+import type { DreamSong, TrendingTrack } from "../dream/types";
+import { SongSearch } from "./SongSearch";
+import { TrendingDreams } from "./TrendingDreams";
+import { WORLDS } from "../worlds";
 
 interface TitleScreenProps {
   tracks: TrackDef[];
-  worlds: World[];
   trackId: string;
   worldId: string;
   onSelectTrack: (id: string) => void;
-  onSelectWorld: (id: string) => void;
+  onSelectDreamSong: (song: DreamSong) => void;
   onEnter: () => void;
+  trends: TrendingTrack[];
+  isLoadingContext: boolean;
 }
+
+type Tab = "curated" | "search";
 
 export function TitleScreen({
   tracks,
-  worlds,
   trackId,
   worldId,
   onSelectTrack,
-  onSelectWorld,
+  onSelectDreamSong,
   onEnter,
+  trends,
+  isLoadingContext,
 }: TitleScreenProps) {
-  const world = worlds.find((w) => w.id === worldId) ?? worlds[0];
+  const world = WORLDS.find((w) => w.id === worldId) ?? WORLDS[0];
   const previewRef = useRef<HTMLAudioElement | null>(null);
   const [previewing, setPreviewing] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("curated");
+  const [selectedDreamSong, setSelectedDreamSong] = useState<DreamSong | null>(null);
 
   useEffect(() => {
     return () => {
@@ -53,6 +63,28 @@ export function TitleScreen({
     setPreviewing(null);
   };
 
+  const handleDreamSongSelect = (song: DreamSong) => {
+    setSelectedDreamSong(song);
+    onSelectDreamSong(song);
+  };
+
+  const handleTrendingExplore = (track: TrendingTrack) => {
+    const song: DreamSong = {
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      album: "",
+      artworkUrl: track.artworkUrl,
+      previewUrl: null,
+      genre: "Pop",
+      source: "itunes",
+    };
+    handleDreamSongSelect(song);
+    setTab("search");
+  };
+
+  const canEnter = tab === "curated" || (tab === "search" && selectedDreamSong !== null && !isLoadingContext);
+
   return (
     <motion.div
       className="absolute inset-0 z-20 flex items-center justify-center overflow-y-auto"
@@ -64,8 +96,8 @@ export function TitleScreen({
         background: `linear-gradient(160deg, ${world.colors.skyTop} 0%, ${world.colors.skyBottom} 100%)`,
       }}
     >
-      <div className="absolute inset-0 bg-black/35" />
-      <div className="relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 py-16">
+      <div className="absolute inset-0 bg-black/38" />
+      <div className="relative mx-auto flex w-full max-w-xl flex-col items-center px-6 py-14">
         <motion.h1
           className="font-display text-center text-5xl font-medium tracking-[0.4em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.5)] sm:text-7xl"
           initial={{ opacity: 0, y: 18, letterSpacing: "0.6em" }}
@@ -75,7 +107,7 @@ export function TitleScreen({
           DREAMWALK
         </motion.h1>
         <motion.p
-          className="mt-5 text-center text-xl font-light tracking-[0.3em] text-white/80 sm:text-2xl"
+          className="mt-4 text-center text-lg font-light tracking-[0.3em] text-white/70"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6, duration: 1.6 }}
@@ -83,118 +115,158 @@ export function TitleScreen({
           Walk inside your music
         </motion.p>
 
-        <div className={`mt-14 w-full ${worlds.length > 1 ? "grid grid-cols-1 gap-8 md:grid-cols-2" : "flex justify-center"}`}>
-          <section className={worlds.length > 1 ? "" : "w-full max-w-md"}>
-            <h2 className={`mb-4 text-xs font-medium uppercase tracking-[0.4em] text-white/60 ${worlds.length > 1 ? "" : "text-center"}`}>
-              Choose a song
-            </h2>
-            <div className="flex flex-col gap-2">
-              {tracks.map((track) => {
-                const active = track.id === trackId;
-                return (
-                  <button
-                    key={track.id}
-                    onClick={() => onSelectTrack(track.id)}
-                    className={`group flex items-center justify-between rounded-xl border px-4 py-3 text-left backdrop-blur-md transition-all duration-300 ${
-                      active
-                        ? "border-white/60 bg-white/15"
-                        : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
-                    }`}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-lg font-light tracking-wide text-white">
-                        {track.title}
-                      </span>
-                      <span className="block truncate text-sm tracking-wide text-white/55">
-                        {track.artist}
-                      </span>
-                    </span>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePreview(track);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.stopPropagation();
-                          togglePreview(track);
-                        }
-                      }}
-                      className="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white/60 hover:text-white"
-                      aria-label={previewing === track.id ? "Stop preview" : "Preview"}
-                    >
-                      {previewing === track.id ? (
-                        <span className="block h-3 w-3 bg-current" />
-                      ) : (
-                        <span className="ml-0.5 block h-0 w-0 border-y-[6px] border-l-[10px] border-y-transparent border-l-current" />
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+        <motion.div
+          className="mt-10 w-full"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 1 }}
+        >
+          <div className="mb-5 flex rounded-lg border border-white/10 bg-white/5 p-1 backdrop-blur-md">
+            <button
+              onClick={() => setTab("curated")}
+              className={`flex-1 rounded-md py-2 text-xs uppercase tracking-[0.3em] transition-all duration-300 ${
+                tab === "curated" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"
+              }`}
+            >
+              Curated
+            </button>
+            <button
+              onClick={() => setTab("search")}
+              className={`flex-1 rounded-md py-2 text-xs uppercase tracking-[0.3em] transition-all duration-300 ${
+                tab === "search" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"
+              }`}
+            >
+              Any Song
+            </button>
+          </div>
 
-          {worlds.length > 1 && (
-            <section>
-              <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.4em] text-white/60">
-                Choose a world
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
-                {worlds.map((w) => {
-                  const active = w.id === worldId;
+          {tab === "curated" && (
+            <motion.section
+              key="curated"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              <div className="flex flex-col gap-2">
+                {tracks.map((track) => {
+                  const active = track.id === trackId;
                   return (
                     <button
-                      key={w.id}
-                      onClick={() => onSelectWorld(w.id)}
-                      className={`overflow-hidden rounded-xl border text-left backdrop-blur-md transition-all duration-300 ${
+                      key={track.id}
+                      onClick={() => { stopPreview(); onSelectTrack(track.id); }}
+                      className={`group flex items-center justify-between rounded-xl border px-4 py-3 text-left backdrop-blur-md transition-all duration-300 ${
                         active
-                          ? "border-white/70 ring-1 ring-white/40"
-                          : "border-white/10 hover:border-white/30"
+                          ? "border-white/60 bg-white/15"
+                          : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
                       }`}
                     >
-                      <div
-                        className="relative h-16 w-full"
-                        style={{
-                          background: `linear-gradient(155deg, ${w.colors.skyTop} 0%, ${w.colors.skyBottom} 60%, ${w.colors.ground} 100%)`,
-                        }}
-                      >
-                        <span
-                          className="absolute right-3 top-3 h-4 w-4 rounded-full"
-                          style={{
-                            background: w.colors.sun,
-                            boxShadow: `0 0 14px 3px ${w.colors.sunGlow}`,
-                          }}
-                        />
-                      </div>
-                      <div className="bg-black/40 px-3 py-2">
-                        <span className="block text-sm font-light tracking-wide text-white">
-                          {w.name}
+                      <span className="min-w-0">
+                        <span className="block truncate text-lg font-light tracking-wide text-white">
+                          {track.title}
                         </span>
-                      </div>
+                        <span className="block truncate text-sm tracking-wide text-white/55">
+                          {track.artist}
+                        </span>
+                      </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); togglePreview(track); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); togglePreview(track); } }}
+                        className="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white/60 hover:text-white"
+                        aria-label={previewing === track.id ? "Stop preview" : "Preview"}
+                      >
+                        {previewing === track.id ? (
+                          <span className="block h-3 w-3 bg-current" />
+                        ) : (
+                          <span className="ml-0.5 block h-0 w-0 border-y-[6px] border-l-[10px] border-y-transparent border-l-current" />
+                        )}
+                      </span>
                     </button>
                   );
                 })}
               </div>
-            </section>
+            </motion.section>
           )}
-        </div>
+
+          {tab === "search" && (
+            <motion.section
+              key="search"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.35 }}
+              className="flex flex-col gap-4"
+            >
+              <SongSearch onSelect={handleDreamSongSelect} />
+
+              {selectedDreamSong && !isLoadingContext && (
+                <motion.div
+                  className="flex items-center gap-3 rounded-xl border border-white/30 bg-white/10 px-4 py-3 backdrop-blur-md"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  {selectedDreamSong.artworkUrl && (
+                    <img
+                      src={selectedDreamSong.artworkUrl}
+                      alt={selectedDreamSong.title}
+                      className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-light tracking-wide text-white">
+                      {selectedDreamSong.title}
+                    </p>
+                    <p className="truncate text-sm tracking-wide text-white/55">
+                      {selectedDreamSong.artist}
+                    </p>
+                  </div>
+                  <span className="text-xs tracking-[0.2em] text-white/40">Selected</span>
+                </motion.div>
+              )}
+
+              {isLoadingContext && (
+                <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3">
+                  <motion.span
+                    className="block h-4 w-4 shrink-0 rounded-full border border-white/30 border-t-white/80"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
+                  />
+                  <span className="text-sm tracking-wide text-white/50">
+                    Building your dream...
+                  </span>
+                </div>
+              )}
+            </motion.section>
+          )}
+        </motion.div>
+
+        {trends.length > 0 && (
+          <motion.div
+            className="mt-10 w-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2, duration: 1 }}
+          >
+            <TrendingDreams tracks={trends} onExplore={handleTrendingExplore} />
+          </motion.div>
+        )}
 
         <motion.button
-          onClick={() => {
-            stopPreview();
-            onEnter();
-          }}
-          className="mt-14 rounded-full border border-white/40 bg-white/10 px-12 py-4 text-sm uppercase tracking-[0.4em] text-white backdrop-blur-md transition-all duration-500 hover:border-white/80 hover:bg-white/20"
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.98 }}
+          onClick={() => { stopPreview(); onEnter(); }}
+          disabled={!canEnter}
+          className={`mt-10 rounded-full border px-12 py-4 text-sm uppercase tracking-[0.4em] text-white backdrop-blur-md transition-all duration-500 ${
+            canEnter
+              ? "border-white/40 bg-white/10 hover:border-white/80 hover:bg-white/20"
+              : "cursor-not-allowed border-white/15 bg-white/5 text-white/40"
+          }`}
+          whileHover={canEnter ? { scale: 1.03 } : {}}
+          whileTap={canEnter ? { scale: 0.98 } : {}}
         >
           Enter the dream
         </motion.button>
 
-        <p className="mt-8 text-center text-xs tracking-[0.25em] text-white/40">
+        <p className="mt-7 text-center text-xs tracking-[0.25em] text-white/40">
           Drag to look &middot; W A S D to walk &middot; Headphones recommended
         </p>
       </div>

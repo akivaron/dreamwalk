@@ -9,6 +9,23 @@ export interface AudioLevels {
   time: number;
 }
 
+export interface StemLevels {
+  drums: number;
+  bass: number;
+  vocals: number;
+  instruments: number;
+}
+
+export interface DreamEventState {
+  isChorus: boolean;
+  isBridge: boolean;
+  isEmotionalLine: boolean;
+  chorusIntensity: number;
+  bridgeIntensity: number;
+  emotionalIntensity: number;
+  currentLine: string;
+}
+
 export const audioLevels: AudioLevels = {
   level: 0,
   bass: 0,
@@ -20,6 +37,23 @@ export const audioLevels: AudioLevels = {
   time: 0,
 };
 
+export const stemLevels: StemLevels = {
+  drums: 0,
+  bass: 0,
+  vocals: 0,
+  instruments: 0,
+};
+
+export const dreamEvents: DreamEventState = {
+  isChorus: false,
+  isBridge: false,
+  isEmotionalLine: false,
+  chorusIntensity: 0,
+  bridgeIntensity: 0,
+  emotionalIntensity: 0,
+  currentLine: "",
+};
+
 export function resetAudioLevels(): void {
   audioLevels.level = 0;
   audioLevels.bass = 0;
@@ -29,4 +63,15 @@ export function resetAudioLevels(): void {
   audioLevels.intensity = 0;
   audioLevels.beat = 0;
   audioLevels.time = 0;
+  stemLevels.drums = 0;
+  stemLevels.bass = 0;
+  stemLevels.vocals = 0;
+  stemLevels.instruments = 0;
+  dreamEvents.isChorus = false;
+  dreamEvents.isBridge = false;
+  dreamEvents.isEmotionalLine = false;
+  dreamEvents.chorusIntensity = 0;
+  dreamEvents.bridgeIntensity = 0;
+  dreamEvents.emotionalIntensity = 0;
+  dreamEvents.currentLine = "";
 }

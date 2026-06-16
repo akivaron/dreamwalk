@@ -2,6 +2,7 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import * as THREE from "three";
 import type { World } from "../types";
+import type { SyncedLyricLine } from "../dream/types";
 import { AudioAnalyzer } from "./AudioAnalyzer";
 import { CameraRig } from "./CameraRig";
 import { Atmosphere } from "./Atmosphere";
@@ -17,15 +18,18 @@ import { PostFX } from "./PostFX";
 import { ScreenshotHelper } from "./ScreenshotHelper";
 import { Grass } from "./Grass";
 import { Birds } from "./Birds";
+import { Fireflies } from "./Fireflies";
 import { Waterfall } from "./Waterfall";
 
 interface ExperienceProps {
   world: World;
   analyser: AnalyserNode | null;
+  syncedLyrics?: SyncedLyricLine[];
+  getAudioTime?: () => number;
   onScreenshotReady: (fn: () => string) => void;
 }
 
-export function Experience({ world, analyser, onScreenshotReady }: ExperienceProps) {
+export function Experience({ world, analyser, syncedLyrics, getAudioTime, onScreenshotReady }: ExperienceProps) {
   return (
     <Canvas
       shadows={{ type: THREE.PCFSoftShadowMap }}
@@ -42,7 +46,7 @@ export function Experience({ world, analyser, onScreenshotReady }: ExperiencePro
       }}
     >
       <Suspense fallback={null}>
-        <AudioAnalyzer analyser={analyser} />
+        <AudioAnalyzer analyser={analyser} syncedLyrics={syncedLyrics} getAudioTime={getAudioTime} />
         <CameraRig world={world} />
         <Atmosphere world={world} />
         <Firmament world={world} />
@@ -55,6 +59,7 @@ export function Experience({ world, analyser, onScreenshotReady }: ExperiencePro
         {world.features.islands && <FloatingIslands world={world} />}
         {world.features.clouds && <Clouds world={world} />}
         <Birds />
+        <Fireflies world={world} />
         <Particles world={world} />
         <PostFX world={world} />
         <ScreenshotHelper onReady={onScreenshotReady} />

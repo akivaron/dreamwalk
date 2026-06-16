@@ -2,7 +2,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { World } from "../types";
-import { audioLevels } from "../audio/audioStore";
+import { audioLevels, dreamEvents } from "../audio/audioStore";
 import { makeGlowTexture } from "./textures";
 import { mulberry32 } from "../rng";
 
@@ -41,10 +41,11 @@ function Sun({ world }: { world: World }) {
   const glowRef = useRef<THREE.Sprite>(null);
   useFrame(() => {
     if (glowRef.current) {
-      const s = world.sunSize * (3.0 + audioLevels.intensity * 2.4 + audioLevels.peak * 1.6);
+      const chorusBoost = 1 + dreamEvents.chorusIntensity * 0.5;
+      const s = world.sunSize * (3.0 + audioLevels.intensity * 2.4 + audioLevels.peak * 1.6) * chorusBoost;
       glowRef.current.scale.set(s, s, 1);
       const m = glowRef.current.material as THREE.SpriteMaterial;
-      m.opacity = 0.5 + audioLevels.intensity * 0.42;
+      m.opacity = 0.5 + audioLevels.intensity * 0.42 + dreamEvents.emotionalIntensity * 0.2;
     }
   });
   return (
@@ -91,7 +92,9 @@ function Stars({ world }: { world: World }) {
   useFrame(() => {
     if (matRef.current) {
       matRef.current.opacity =
-        0.55 + Math.sin(audioLevels.time * 0.7) * 0.12 + audioLevels.treble * 0.35;
+        0.55 + Math.sin(audioLevels.time * 0.7) * 0.12 +
+        audioLevels.treble * 0.35 +
+        dreamEvents.chorusIntensity * 0.25;
     }
   });
   return (
@@ -135,7 +138,9 @@ function Aurora({ world }: { world: World }) {
   );
   useFrame(() => {
     mat.uniforms.uTime.value = audioLevels.time;
-    mat.uniforms.uIntensity.value = audioLevels.intensity;
+    const chorusBump = dreamEvents.chorusIntensity * 0.45;
+    const vocalGlow = dreamEvents.emotionalIntensity * 0.3;
+    mat.uniforms.uIntensity.value = audioLevels.intensity + chorusBump + vocalGlow;
   });
   return (
     <group position={[0, 240, -460]} rotation={[-0.5, 0, 0]}>

@@ -1,3 +1,5 @@
 - [WebGL unavailable in env browsers](webgl-sandbox.md) — preview + Playwright test browsers have no GPU/WebGL; R3F scenes can't be visually verified here, only DOM layers.
 - [R3F audio/state sharing](r3f-patterns.md) — use a module singleton for per-frame data across the R3F reconciler boundary; seed all randomness; @types/three needed at matching version.
 - [ElevenLabs music limits](elevenlabs-music.md) — max 2 concurrent generations; avoid trademarked/"epic"-type words that trigger TOS rejection.
+- [DreamWalk Dream Engine](dreamwalk-dream-engine.md) — iTunes Search + lyrics.ovh + keyword mood/world analysis + LyricsClock + ElevenLabs narration architecture
+- [DreamWalk API proxy pattern](dreamwalk-api-proxy.md) — CORS-restricted APIs (Apple RSS trending, Musixmatch, Ticketmaster, ElevenLabs) must go through api-server proxy; iTunes Search is CORS-ok from browser

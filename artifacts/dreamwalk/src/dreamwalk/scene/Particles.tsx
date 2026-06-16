@@ -4,7 +4,7 @@ import * as THREE from "three";
 import type { World } from "../types";
 import { mulberry32 } from "../rng";
 import { makeGlowTexture } from "./textures";
-import { audioLevels } from "../audio/audioStore";
+import { audioLevels, dreamEvents } from "../audio/audioStore";
 
 const COUNT = 1400;
 const SPREAD_XZ = 160;
@@ -39,17 +39,23 @@ export function Particles({ world }: { world: World }) {
     const arr = pos.array as Float32Array;
     const dir = snow ? -1 : 1;
     const baseSpeed = embers ? 6 : snow ? 4 : 2.4;
-    const speed = baseSpeed * (1 + audioLevels.level * 1.6);
-    const sway = 0.6 + audioLevels.mid * 1.5;
+
+    const chorusMult = 1 + dreamEvents.chorusIntensity * 1.6;
+    const drumShake = dreamEvents.isChorus ? dreamEvents.chorusIntensity * 0.4 : 0;
+
+    const speed = baseSpeed * (1 + audioLevels.level * 1.6) * chorusMult;
+    const sway = 0.6 + audioLevels.mid * 1.5 + dreamEvents.bridgeIntensity * 0.8;
     const t = audioLevels.time;
+
     for (let i = 0; i < COUNT; i++) {
       const yi = i * 3 + 1;
       arr[yi] += dir * velocities[i] * speed * delta;
-      arr[i * 3] += Math.sin(t * 0.5 + i) * sway * delta;
+      arr[i * 3] += (Math.sin(t * 0.5 + i) * sway + (Math.random() - 0.5) * drumShake) * delta;
       if (dir > 0 && arr[yi] > SPREAD_Y) arr[yi] = 0;
       if (dir < 0 && arr[yi] < 0) arr[yi] = SPREAD_Y;
     }
     pos.needsUpdate = true;
+
     if (pointsRef.current) {
       pointsRef.current.position.set(
         camera.position.x - SPREAD_XZ,
@@ -57,9 +63,12 @@ export function Particles({ world }: { world: World }) {
         camera.position.z - SPREAD_XZ,
       );
     }
+
     if (matRef.current) {
-      matRef.current.size = (embers ? 2.4 : 1.8) * (0.7 + audioLevels.level * 1.4);
-      matRef.current.opacity = 0.4 + audioLevels.level * 0.5;
+      const sizeMult = 1 + dreamEvents.chorusIntensity * 0.6;
+      const opacityMult = 1 + dreamEvents.emotionalIntensity * 0.35;
+      matRef.current.size = (embers ? 2.4 : 1.8) * (0.7 + audioLevels.level * 1.4) * sizeMult;
+      matRef.current.opacity = Math.min(0.95, (0.4 + audioLevels.level * 0.5) * opacityMult);
     }
   });
 
