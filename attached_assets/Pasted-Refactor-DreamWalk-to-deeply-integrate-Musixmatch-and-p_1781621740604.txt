@@ -1,0 +1,290 @@
+Refactor DreamWalk to deeply integrate Musixmatch and partner APIs.
+
+The goal is NOT to simply call APIs.
+The goal is to make every API influence the experience.
+
+DreamWalk is an emotional, cinematic music experience where users enter a world generated from a song.
+
+====================================================
+1. MUSIXMATCH INTEGRATION
+====================================================
+
+Use:
+
+- Song Search
+- Lyrics
+- Synced Lyrics / timestamps if available
+
+Generate:
+
+{
+  sections: [
+    verse,
+    chorus,
+    bridge,
+    outro
+  ],
+  keywords: [],
+  themes: [],
+  important_lines: []
+}
+
+Responsibilities:
+
+1. Extract keywords from lyrics:
+- ocean
+- stars
+- rain
+- fire
+- home
+- mountain
+- city
+- night
+
+2. Use keywords to modify environments.
+
+Examples:
+
+"ocean"
+→ add water.
+
+"stars"
+→ change sky to night.
+
+"fire"
+→ add embers.
+
+"castle"
+→ add ruins.
+
+3. Use lyric timestamps to trigger events.
+
+Example:
+
+At chorus:
+- sunrise
+- aurora
+- stronger wind
+- more particles
+
+At bridge:
+- color transition.
+
+At emotional lines:
+- camera focus.
+- environmental changes.
+
+Lyrics should become story beats.
+
+====================================================
+2. CYANITE INTEGRATION
+====================================================
+
+Use:
+
+- mood
+- emotion
+- energy
+- genre
+- valence
+
+Generate:
+
+{
+  primaryEmotion,
+  secondaryEmotion,
+  energy,
+  valence,
+  genre
+}
+
+Responsibilities:
+
+Map emotions to:
+
+environment:
+- calm
+- nostalgic
+- hopeful
+- dark
+- energetic
+- melancholic
+
+camera:
+- movement speed
+- field of view
+- camera height
+
+lighting:
+- intensity
+- color temperature
+
+weather:
+- rain
+- fog
+- snow
+- wind
+
+particle density.
+
+Examples:
+
+Sad:
+- rain
+- fog
+- blue lighting
+
+Epic:
+- sunset
+- god rays
+- huge mountains
+
+Hopeful:
+- sunrise
+- warm colors.
+
+====================================================
+3. LALAL.AI INTEGRATION
+====================================================
+
+Separate:
+
+- vocals
+- drums
+- bass
+- instruments
+
+Use stems to drive visual effects.
+
+Drums:
+- pulse particles
+- camera shake.
+
+Bass:
+- environment vibration.
+
+Vocals:
+- aurora intensity.
+- glow.
+
+Instruments:
+- sky transitions.
+- fog movement.
+
+This should feel subtle and cinematic.
+
+Never create nightclub visualizers.
+
+====================================================
+4. ELEVENLABS INTEGRATION
+====================================================
+
+Generate optional narration.
+
+Narration should be short:
+
+Examples:
+
+"This song feels like a lonely journey home."
+
+"A world of hope and nostalgia awaits."
+
+"The music speaks of loss and redemption."
+
+Narration only happens once:
+- before entering world
+- or at emotional climax.
+
+Narration can be disabled.
+
+====================================================
+5. SONGSTATS INTEGRATION
+====================================================
+
+Create:
+
+Trending Dreams
+
+Show:
+
+🔥 Most explored songs today
+🔥 Fastest growing dreams
+🔥 Community favorites
+
+Add:
+
+"Explore this Dream"
+
+This feature should create discovery and replayability.
+
+====================================================
+6. JAMBASE INTEGRATION
+====================================================
+
+If artist has upcoming concerts:
+
+Display:
+
+Upcoming Live Events
+
+If a concert exists:
+
+Generate:
+
+Concert Dream Mode
+
+Examples:
+
+Coldplay
+→ stadium lights.
+
+Imagine Dragons
+→ fireworks.
+
+Taylor Swift
+→ friendship bracelets particles.
+
+Concert mode is optional.
+
+====================================================
+7. DREAM ENGINE
+====================================================
+
+Create a unified engine:
+
+DreamContext
+
+{
+  song,
+  lyrics,
+  themes,
+  keywords,
+  mood,
+  emotions,
+  energy,
+  bpm,
+  stems,
+  trends,
+  concerts
+}
+
+Use DreamContext to build the experience.
+
+====================================================
+8. EXPERIENCE PRIORITIES
+====================================================
+
+1. Emotion
+2. Atmosphere
+3. Beauty
+4. Music synchronization
+5. Interactivity
+
+Never prioritize:
+- gameplay
+- realism
+- complexity
+
+DreamWalk should feel like:
+
+"Stepping inside the emotions of a song."
