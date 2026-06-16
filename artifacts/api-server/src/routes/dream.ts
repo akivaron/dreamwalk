@@ -773,6 +773,46 @@ router.get("/track-details", async (req: Request, res: Response) => {
   }
 });
 
+// ─── /api/audio-proxy — stream iTunes preview with CORS headers ──────────────
+
+router.get("/audio-proxy", async (req: Request, res: Response) => {
+  const raw = String(req.query.url ?? "").trim();
+  if (!raw) { res.status(400).json({ error: "missing url" }); return; }
+
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    res.status(400).json({ error: "invalid url" }); return;
+  }
+
+  const allowed = ["audio-ssl.itunes.apple.com", "audio.itunes.apple.com", "a1.mzstatic.com"];
+  if (!allowed.some((h) => url.hostname === h || url.hostname.endsWith("." + h))) {
+    res.status(403).json({ error: "url not allowed" }); return;
+  }
+
+  try {
+    const upstream = await fetch(url.toString(), {
+      headers: { "User-Agent": "Mozilla/5.0 DreamWalk/1.0" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!upstream.ok || !upstream.body) {
+      res.status(502).json({ error: "upstream error" }); return;
+    }
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Type", upstream.headers.get("Content-Type") ?? "audio/mpeg");
+    const cl = upstream.headers.get("Content-Length");
+    if (cl) res.setHeader("Content-Length", cl);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+
+    const { Readable } = await import("node:stream");
+    Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!res.headersSent) res.status(502).json({ error: msg.slice(0, 200) });
+  }
+});
+
 // ─── /api/curated — hand-picked popular songs via iTunes lookup ───────────────
 
 const CURATED_QUERIES = [

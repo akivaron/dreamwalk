@@ -161,53 +161,94 @@ export function TitleScreen({
                   {tracks.map((track) => {
                     const active = track.id === trackId;
                     return (
-                      <button
-                        key={track.id}
-                        onClick={() => { stopPreview(); onSelectTrack(track.id); }}
-                        className={`group flex items-center justify-between rounded-xl border px-4 py-3 text-left backdrop-blur-md transition-all duration-300 ${
-                          active
-                            ? "border-white/60 bg-white/15"
-                            : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
-                        }`}
-                      >
-                        <span className="flex min-w-0 items-center gap-3">
-                          {track.artworkUrl ? (
-                            <img
-                              src={track.artworkUrl}
-                              alt={track.title}
-                              className="h-10 w-10 shrink-0 rounded-lg object-cover opacity-90"
-                            />
-                          ) : (
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/8 text-white/20">
-                              <span className="block h-4 w-4 rounded-full border border-current" />
-                            </span>
-                          )}
-                          <span className="min-w-0">
-                            <span className="block truncate text-base font-light tracking-wide text-white">
-                              {track.title}
-                            </span>
-                            <span className="block truncate text-sm tracking-wide text-white/55">
-                              {track.artist}
+                      <div key={track.id} className="flex flex-col gap-1">
+                        <button
+                          onClick={() => { stopPreview(); onSelectTrack(track.id); }}
+                          className={`group flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left backdrop-blur-md transition-all duration-300 ${
+                            active
+                              ? "border-white/60 bg-white/15"
+                              : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                          }`}
+                        >
+                          <span className="flex min-w-0 items-center gap-3">
+                            {track.artworkUrl ? (
+                              <img
+                                src={track.artworkUrl}
+                                alt={track.title}
+                                className="h-10 w-10 shrink-0 rounded-lg object-cover opacity-90"
+                              />
+                            ) : (
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/8 text-white/20">
+                                <span className="block h-4 w-4 rounded-full border border-current" />
+                              </span>
+                            )}
+                            <span className="min-w-0">
+                              <span className="block truncate text-base font-light tracking-wide text-white">
+                                {track.title}
+                              </span>
+                              <span className="block truncate text-sm tracking-wide text-white/55">
+                                {track.artist}
+                              </span>
                             </span>
                           </span>
-                        </span>
-                        {track.file && (
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => { e.stopPropagation(); togglePreview(track); }}
-                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); togglePreview(track); } }}
-                            className="ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white/60 hover:text-white"
-                            aria-label={previewing === track.id ? "Stop preview" : "Preview"}
-                          >
-                            {previewing === track.id ? (
-                              <span className="block h-3 w-3 bg-current" />
-                            ) : (
-                              <span className="ml-0.5 block h-0 w-0 border-y-[6px] border-l-[10px] border-y-transparent border-l-current" />
+                          <span className="ml-3 flex shrink-0 items-center gap-2">
+                            {onViewDetail && (
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onViewDetail({
+                                    id: track.id,
+                                    title: track.title,
+                                    artist: track.artist,
+                                    album: "",
+                                    artworkUrl: track.artworkUrl ?? "",
+                                    previewUrl: track.file,
+                                    genre: "Pop",
+                                    source: "itunes",
+                                  });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.stopPropagation();
+                                    onViewDetail({
+                                      id: track.id,
+                                      title: track.title,
+                                      artist: track.artist,
+                                      album: "",
+                                      artworkUrl: track.artworkUrl ?? "",
+                                      previewUrl: track.file,
+                                      genre: "Pop",
+                                      source: "itunes",
+                                    });
+                                  }
+                                }}
+                                className="rounded-full border border-white/20 bg-white/8 px-3 py-1 text-[10px] tracking-widest text-white/55 transition-all hover:bg-white/15 hover:text-white whitespace-nowrap"
+                                aria-label="View song details"
+                              >
+                                Details →
+                              </span>
+                            )}
+                            {track.file && (
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => { e.stopPropagation(); togglePreview(track); }}
+                                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); togglePreview(track); } }}
+                                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white/60 hover:text-white"
+                                aria-label={previewing === track.id ? "Stop preview" : "Preview"}
+                              >
+                                {previewing === track.id ? (
+                                  <span className="block h-3 w-3 bg-current" />
+                                ) : (
+                                  <span className="ml-0.5 block h-0 w-0 border-y-[6px] border-l-[10px] border-y-transparent border-l-current" />
+                                )}
+                              </span>
                             )}
                           </span>
-                        )}
-                      </button>
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
