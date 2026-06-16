@@ -1,4 +1,4 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -16,7 +16,7 @@ interface RocketState {
   sparkCount: number;
 }
 
-function initRocket(i: number): RocketState {
+function makeRocket(i: number): RocketState {
   const spread = 20;
   return {
     pos: new THREE.Vector3((Math.random() - 0.5) * spread, 1, (Math.random() - 0.5) * 8 - 5),
@@ -24,26 +24,29 @@ function initRocket(i: number): RocketState {
     color: new THREE.Color(COLORS[i % COLORS.length]),
     phase: "rising",
     timer: i * 1.1,
-    sparkStart: (i * SPARK_SLOTS) / ROCKETS_MAX,
-    sparkCount: SPARK_SLOTS / ROCKETS_MAX,
+    sparkStart: Math.floor((i * SPARK_SLOTS) / ROCKETS_MAX),
+    sparkCount: Math.floor(SPARK_SLOTS / ROCKETS_MAX),
   };
 }
 
-const sparkPos = new Float32Array(SPARK_SLOTS * 3);
-const sparkAlpha = new Float32Array(SPARK_SLOTS);
-const sparkVels: THREE.Vector3[] = Array.from({ length: SPARK_SLOTS }, () => new THREE.Vector3());
-const sparkLife: Float32Array = new Float32Array(SPARK_SLOTS);
+const beamBaseColors = [
+  new THREE.Color(0x4499ff),
+  new THREE.Color(0xff4488),
+  new THREE.Color(0x44ffcc),
+  new THREE.Color(0xffaa33),
+];
+
+const beamBasePositions: [number, number, number][] = [
+  [-12, 0, -8],
+  [12, 0, -8],
+  [-12, 0, 2],
+  [12, 0, 2],
+];
 
 export function ConcertOverlay({ active }: { active: boolean }) {
   const rocketsRef = useRef<RocketState[]>(
-    Array.from({ length: ROCKETS_MAX }, (_, i) => initRocket(i)),
+    Array.from({ length: ROCKETS_MAX }, (_, i) => makeRocket(i)),
   );
-  const launchTimerRef = useRef(0);
-
-  const positions = useRef(sparkPos);
-  const alphas = useRef(sparkAlpha);
-  const pointsRef = useRef<THREE.Points>(null);
-  const matRef = useRef<THREE.PointsMaterial>(null);
 
   const beamRefs = [
     useRef<THREE.Mesh>(null),
@@ -52,33 +55,35 @@ export function ConcertOverlay({ active }: { active: boolean }) {
     useRef<THREE.Mesh>(null),
   ];
 
-  const beamPositions = useMemo(
-    () => [
-      [-12, 0, -8],
-      [12, 0, -8],
-      [-12, 0, 2],
-      [12, 0, 2],
-    ] as [number, number, number][],
-    [],
+  const sparkVelsRef = useRef<THREE.Vector3[]>(
+    Array.from({ length: SPARK_SLOTS }, () => new THREE.Vector3()),
   );
+  const sparkLifeRef = useRef<Float32Array>(new Float32Array(SPARK_SLOTS));
 
-  const beamColors = useMemo(
-    () => [
-      new THREE.Color(0x4499ff),
-      new THREE.Color(0xff4488),
-      new THREE.Color(0x44ffcc),
-      new THREE.Color(0xffaa33),
-    ],
-    [],
-  );
+  const geo = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    const arr = new Float32Array(SPARK_SLOTS * 3);
+    g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+    return g;
+  }, []);
+
+  const posArrayRef = useRef<Float32Array | null>(null);
+  useEffect(() => {
+    posArrayRef.current = geo.attributes["position"].array as Float32Array;
+    return () => {
+      geo.dispose();
+    };
+  }, [geo]);
 
   useFrame(({ clock }, delta) => {
     if (!active) return;
+    const posArr = posArrayRef.current;
+    if (!posArr) return;
 
     const dt = Math.min(delta, 0.05);
-    launchTimerRef.current += dt;
-
     const rockets = rocketsRef.current;
+    const sparkVels = sparkVelsRef.current;
+    const sparkLife = sparkLifeRef.current;
 
     for (let r = 0; r < ROCKETS_MAX; r++) {
       const rk = rockets[r];
@@ -96,9 +101,9 @@ export function ConcertOverlay({ active }: { active: boolean }) {
           const cz = rk.pos.z;
           for (let s = 0; s < rk.sparkCount; s++) {
             const idx = rk.sparkStart + s;
-            positions.current[idx * 3] = cx;
-            positions.current[idx * 3 + 1] = cy;
-            positions.current[idx * 3 + 2] = cz;
+            posArr[idx * 3] = cx;
+            posArr[idx * 3 + 1] = cy;
+            posArr[idx * 3 + 2] = cz;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             const speed = 3 + Math.random() * 8;
@@ -108,7 +113,6 @@ export function ConcertOverlay({ active }: { active: boolean }) {
               Math.sin(phi) * Math.sin(theta) * speed,
             );
             sparkLife[idx] = 1;
-            alphas.current[idx] = 1;
           }
         }
       } else {
@@ -118,28 +122,27 @@ export function ConcertOverlay({ active }: { active: boolean }) {
           if (sparkLife[idx] <= 0) continue;
           anyAlive = true;
           sparkVels[idx].y -= 5 * dt;
-          positions.current[idx * 3] += sparkVels[idx].x * dt;
-          positions.current[idx * 3 + 1] += sparkVels[idx].y * dt;
-          positions.current[idx * 3 + 2] += sparkVels[idx].z * dt;
+          posArr[idx * 3] += sparkVels[idx].x * dt;
+          posArr[idx * 3 + 1] += sparkVels[idx].y * dt;
+          posArr[idx * 3 + 2] += sparkVels[idx].z * dt;
           sparkLife[idx] -= dt * 0.7;
-          alphas.current[idx] = Math.max(0, sparkLife[idx]);
         }
 
         if (!anyAlive) {
-          const next = initRocket(r);
+          const next = makeRocket(r);
           next.timer = 1.5 + Math.random() * 2;
           rockets[r] = next;
           for (let s = 0; s < rk.sparkCount; s++) {
             const idx = rk.sparkStart + s;
-            alphas.current[idx] = 0;
+            sparkLife[idx] = 0;
+            posArr[idx * 3 + 1] = -9999;
           }
         }
       }
     }
 
-    if (pointsRef.current) {
-      (pointsRef.current.geometry.attributes["position"] as THREE.BufferAttribute).needsUpdate = true;
-    }
+    const attr = geo.attributes["position"] as THREE.BufferAttribute;
+    attr.needsUpdate = true;
 
     const t = clock.getElapsedTime();
     for (let b = 0; b < 4; b++) {
@@ -147,16 +150,11 @@ export function ConcertOverlay({ active }: { active: boolean }) {
       if (beam) {
         const pulse = 0.85 + Math.sin(t * 1.4 + b * 1.2) * 0.15;
         beam.scale.setScalar(pulse);
-        (beam.material as THREE.MeshBasicMaterial).opacity = 0.12 + pulse * 0.06;
+        const mat = beam.material as THREE.MeshBasicMaterial;
+        mat.opacity = 0.12 + pulse * 0.06;
       }
     }
   });
-
-  const geo = useMemo(() => {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(SPARK_SLOTS * 3), 3));
-    return g;
-  }, []);
 
   if (!active) return null;
 
@@ -169,15 +167,21 @@ export function ConcertOverlay({ active }: { active: boolean }) {
 
       <mesh position={[0, -0.09, -5]}>
         <boxGeometry args={[27.8, 0.01, 13.8]} />
-        <meshStandardMaterial color="#2a1a4a" roughness={0.4} metalness={0.3} emissive="#1a0a2a" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color="#2a1a4a"
+          roughness={0.4}
+          metalness={0.3}
+          emissive="#1a0a2a"
+          emissiveIntensity={0.4}
+        />
       </mesh>
 
-      {beamPositions.map((pos, i) => (
+      {beamBasePositions.map((pos, i) => (
         <group key={i} position={pos}>
-          <mesh ref={beamRefs[i]} rotation={[0, 0, 0]}>
+          <mesh ref={beamRefs[i]}>
             <coneGeometry args={[1.2, 30, 8, 1, true]} />
             <meshBasicMaterial
-              color={beamColors[i]}
+              color={beamBaseColors[i]}
               transparent
               opacity={0.14}
               side={THREE.BackSide}
@@ -186,17 +190,15 @@ export function ConcertOverlay({ active }: { active: boolean }) {
           </mesh>
           <mesh position={[0, 0.5, 0]}>
             <sphereGeometry args={[0.25, 8, 8]} />
-            <meshBasicMaterial color={beamColors[i]} />
+            <meshBasicMaterial color={beamBaseColors[i]} />
           </mesh>
-          <pointLight color={beamColors[i]} intensity={4} distance={20} />
+          <pointLight color={beamBaseColors[i]} intensity={4} distance={20} />
         </group>
       ))}
 
-      <points ref={pointsRef} geometry={geo}>
+      <points geometry={geo}>
         <pointsMaterial
-          ref={matRef}
           size={0.18}
-          vertexColors={false}
           color="#ffffff"
           transparent
           opacity={0.95}
