@@ -773,7 +773,17 @@ router.get("/track-details", async (req: Request, res: Response) => {
   }
 });
 
-// ─── /api/audio-proxy — stream iTunes preview with CORS headers ──────────────
+// ─── /api/audio-proxy — stream iTunes preview with CORS + Range support ──────
+
+const AUDIO_PROXY_ALLOWED = ["audio-ssl.itunes.apple.com", "audio.itunes.apple.com", "a1.mzstatic.com"];
+
+router.options("/audio-proxy", (_req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Range, Origin, Accept");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Max-Age", "86400");
+  res.status(204).send();
+});
 
 router.get("/audio-proxy", async (req: Request, res: Response) => {
   const raw = String(req.query.url ?? "").trim();
@@ -786,25 +796,38 @@ router.get("/audio-proxy", async (req: Request, res: Response) => {
     res.status(400).json({ error: "invalid url" }); return;
   }
 
-  const allowed = ["audio-ssl.itunes.apple.com", "audio.itunes.apple.com", "a1.mzstatic.com"];
-  if (!allowed.some((h) => url.hostname === h || url.hostname.endsWith("." + h))) {
+  if (!AUDIO_PROXY_ALLOWED.some((h) => url.hostname === h || url.hostname.endsWith("." + h))) {
     res.status(403).json({ error: "url not allowed" }); return;
   }
 
   try {
+    const upstreamHeaders: Record<string, string> = {
+      "User-Agent": "Mozilla/5.0 DreamWalk/1.0",
+    };
+    const range = req.headers["range"];
+    if (range) upstreamHeaders["Range"] = range;
+
     const upstream = await fetch(url.toString(), {
-      headers: { "User-Agent": "Mozilla/5.0 DreamWalk/1.0" },
+      headers: upstreamHeaders,
       signal: AbortSignal.timeout(15000),
     });
-    if (!upstream.ok || !upstream.body) {
-      res.status(502).json({ error: "upstream error" }); return;
+
+    if ((!upstream.ok && upstream.status !== 206) || !upstream.body) {
+      res.status(502).json({ error: `upstream ${upstream.status}` }); return;
     }
+
     res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
+    res.setHeader("Accept-Ranges", "bytes");
     res.setHeader("Content-Type", upstream.headers.get("Content-Type") ?? "audio/mpeg");
-    const cl = upstream.headers.get("Content-Length");
-    if (cl) res.setHeader("Content-Length", cl);
     res.setHeader("Cache-Control", "public, max-age=3600");
 
+    const cl = upstream.headers.get("Content-Length");
+    if (cl) res.setHeader("Content-Length", cl);
+    const cr = upstream.headers.get("Content-Range");
+    if (cr) res.setHeader("Content-Range", cr);
+
+    res.status(upstream.status);
     const { Readable } = await import("node:stream");
     Readable.fromWeb(upstream.body as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
   } catch (err) {

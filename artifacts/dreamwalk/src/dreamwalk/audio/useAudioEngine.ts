@@ -9,6 +9,21 @@ export interface AudioEngine {
   getProgress: () => { time: number; duration: number };
 }
 
+function makeAudioElement(): HTMLAudioElement {
+  const el = new Audio();
+  el.loop = true;
+  el.crossOrigin = "anonymous";
+  el.preload = "auto";
+  el.addEventListener("error", () => {
+    const e = el.error;
+    console.error("[DreamWalk audio] element error", e?.code, e?.message, el.src.slice(0, 120));
+  });
+  el.addEventListener("stalled", () =>
+    console.warn("[DreamWalk audio] stalled", el.src.slice(0, 80)),
+  );
+  return el;
+}
+
 export function useAudioEngine(): AudioEngine {
   const elRef = useRef<HTMLAudioElement | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
@@ -17,13 +32,20 @@ export function useAudioEngine(): AudioEngine {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const ensureGraph = useCallback(() => {
-    if (!elRef.current) {
-      const el = new Audio();
-      el.loop = true;
-      el.crossOrigin = "anonymous";
-      el.preload = "auto";
-      elRef.current = el;
+    // Recover from a closed AudioContext — happens after HMR or component remount.
+    // createMediaElementSource can only be called ONCE per audio element, so we must
+    // also create a fresh Audio element when the context is rebuilt.
+    if (ctxRef.current?.state === "closed") {
+      console.warn("[DreamWalk audio] context was closed — rebuilding graph");
+      ctxRef.current = null;
+      srcRef.current = null;
+      elRef.current = makeAudioElement();
     }
+
+    if (!elRef.current) {
+      elRef.current = makeAudioElement();
+    }
+
     if (!ctxRef.current) {
       const Ctx =
         window.AudioContext ||
@@ -39,27 +61,33 @@ export function useAudioEngine(): AudioEngine {
       ctxRef.current = ctx;
       srcRef.current = src;
       setAnalyser(an);
+      console.warn("[DreamWalk audio] graph created, ctx state:", ctx.state);
     }
   }, []);
 
   const loadAndPlay = useCallback(
     async (url: string) => {
+      console.warn("[DreamWalk audio] loadAndPlay →", url.slice(0, 120));
       ensureGraph();
       const ctx = ctxRef.current!;
       const el = elRef.current!;
       if (ctx.state === "suspended") {
         await ctx.resume();
+        console.warn("[DreamWalk audio] ctx resumed");
       }
       const absolute = new URL(url, window.location.href).href;
       if (el.src !== absolute) {
         el.src = url;
+        console.warn("[DreamWalk audio] src →", url.slice(0, 100));
+      } else {
+        try { el.currentTime = 0; } catch { /* not seekable yet — ok */ }
       }
-      el.currentTime = 0;
       try {
         await el.play();
+        console.warn("[DreamWalk audio] playing ✓  ctx:", ctx.state);
         setIsPlaying(true);
       } catch (e) {
-        console.error("DreamWalk audio play failed", e);
+        console.error("[DreamWalk audio] play failed", e);
         setIsPlaying(false);
       }
     },
@@ -84,11 +112,7 @@ export function useAudioEngine(): AudioEngine {
     const el = elRef.current;
     if (el) {
       el.pause();
-      try {
-        el.currentTime = 0;
-      } catch {
-        /* ignore */
-      }
+      try { el.currentTime = 0; } catch { /* ignore */ }
     }
     setIsPlaying(false);
   }, []);
@@ -101,15 +125,10 @@ export function useAudioEngine(): AudioEngine {
 
   useEffect(() => {
     return () => {
-      try {
-        elRef.current?.pause();
-      } catch {
-        /* ignore */
-      }
-      try {
-        void ctxRef.current?.close();
-      } catch {
-        /* ignore */
+      try { elRef.current?.pause(); } catch { /* ignore */ }
+      const ctx = ctxRef.current;
+      if (ctx && ctx.state !== "closed") {
+        ctx.close().catch(() => { /* already closed — ignore */ });
       }
     };
   }, []);
