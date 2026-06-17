@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { WishButton } from "./WishButton";
 import { WishModal } from "./WishModal";
 import { wishStore } from "./wishStore";
 import { fetchWishes, submitWish } from "./api";
@@ -188,12 +187,20 @@ interface DreamWishesProps {
   songId: string;
   songTitle: string;
   worldId: string;
+  isModalOpen: boolean;
+  onModalClose: () => void;
+  onHasWished: () => void;
 }
 
-export function DreamWishes({ songId, songTitle, worldId }: DreamWishesProps) {
-  const [modal, setModal] = useState<"none" | "compose">("none");
+export function DreamWishes({
+  songId,
+  songTitle,
+  worldId,
+  isModalOpen,
+  onModalClose,
+  onHasWished,
+}: DreamWishesProps) {
   const [submitting, setSubmitting] = useState(false);
-  const [hasWished, setHasWished] = useState(false);
   const [flashVisible, setFlashVisible] = useState(false);
   const [releaseKey, setReleaseKey] = useState(0);
   const [releaseVisible, setReleaseVisible] = useState(false);
@@ -251,8 +258,8 @@ export function DreamWishes({ songId, songTitle, worldId }: DreamWishesProps) {
       wishStore.samples = [newWish, ...wishStore.samples].slice(0, 8);
       wishStore.count = wishStore.count + 1;
       wishStore.version++;
-      setHasWished(true);
-      setModal("none");
+      onHasWished();
+      onModalClose();
       wishStore.tiltCamera = true;
       wishStore.tiltTimer = 0;
       setFlashVisible(true);
@@ -328,14 +335,12 @@ export function DreamWishes({ songId, songTitle, worldId }: DreamWishesProps) {
         />
       )}
 
-      <WishButton onOpen={() => setModal("compose")} hasWished={hasWished} />
-
-      {modal === "compose" && (
+      {isModalOpen && (
         <div className="pointer-events-auto">
           <WishModal
             worldId={worldId}
             songTitle={songTitle}
-            onClose={() => setModal("none")}
+            onClose={onModalClose}
             onSubmit={handleSubmit}
             submitting={submitting}
           />

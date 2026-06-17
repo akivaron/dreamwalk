@@ -43,6 +43,9 @@ export default function App() {
   const [trackId, setTrackId] = useState(TRACKS[0].id);
   const [songMode, setSongMode] = useState<"curated" | "dream">("curated");
   const [narrationPlayed, setNarrationPlayed] = useState(false);
+  const [wishVisible, setWishVisible] = useState(false);
+  const [hasWished, setHasWished] = useState(false);
+  const [wishModalOpen, setWishModalOpen] = useState(false);
 
   const engine = useAudioEngine();
   const screenshotFn = useRef<(() => string) | null>(null);
@@ -242,6 +245,18 @@ export default function App() {
     return () => stopClimaxWatcher();
   }, [stopClimaxWatcher]);
 
+  // Wish button: appear 15s into experience, reset on exit
+  useEffect(() => {
+    if (phase !== "experience") {
+      setWishVisible(false);
+      setHasWished(false);
+      setWishModalOpen(false);
+      return;
+    }
+    const t = setTimeout(() => setWishVisible(true), 15000);
+    return () => clearTimeout(t);
+  }, [phase]);
+
   // Auto-enter after navigating from SongDetail once dream finishes building
   useEffect(() => {
     if (autoEnterRef.current && dream.ready && phase === "title") {
@@ -330,6 +345,9 @@ export default function App() {
           songId={activeSongId}
           songTitle={activeTitle}
           worldId={activeWorld.id}
+          isModalOpen={wishModalOpen}
+          onModalClose={() => setWishModalOpen(false)}
+          onHasWished={() => setHasWished(true)}
         />
       )}
 
@@ -345,6 +363,9 @@ export default function App() {
           onScreenshot={captureScreenshot}
           onExit={exit}
           onToggleNarration={dream.toggleNarration}
+          wishVisible={wishVisible}
+          hasWished={hasWished}
+          onWishOpen={() => setWishModalOpen(true)}
         />
       )}
 

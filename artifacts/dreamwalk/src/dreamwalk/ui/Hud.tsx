@@ -15,6 +15,9 @@ interface HudProps {
   onScreenshot: () => void;
   onExit: () => void;
   onToggleNarration: () => void;
+  wishVisible?: boolean;
+  hasWished?: boolean;
+  onWishOpen?: () => void;
 }
 
 export function Hud({
@@ -28,6 +31,9 @@ export function Hud({
   onScreenshot,
   onExit,
   onToggleNarration,
+  wishVisible = false,
+  hasWished = false,
+  onWishOpen,
 }: HudProps) {
   const [visible, setVisible] = useState(true);
   const [showHint, setShowHint] = useState(true);
@@ -179,6 +185,15 @@ export function Hud({
             >
               Capture
             </button>
+
+            {wishVisible && (
+              <button
+                onClick={onWishOpen}
+                className="pointer-events-auto rounded-full border border-white/25 bg-black/30 px-5 py-3 text-xs uppercase tracking-[0.3em] text-white/80 backdrop-blur-md transition-colors hover:border-white/60 hover:text-white"
+              >
+                {hasWished ? "Wish again" : "Leave a wish"}
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
