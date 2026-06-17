@@ -54,11 +54,19 @@ export default function App() {
   const climaxFiredRef = useRef(false);
   const climaxRafRef = useRef<number | null>(null);
   const autoEnterRef = useRef(false);
+  // Always-fresh ref so enter() never captures a stale activeAudioFile closure
+  const activeAudioFileRef = useRef<string | null>(null);
 
   const dream = useDreamContext();
   const curatedSongs = useCuratedSongs();
 
   const curatedTrack = curatedSongs.find((t) => t.id === trackId) ?? curatedSongs[0] ?? TRACKS[0];
+
+  // Sync on every render so enter() always reads the latest value (avoids stale closure)
+  activeAudioFileRef.current =
+    songMode === "dream"
+      ? toProxiedUrl(dream.context.song?.previewUrl)
+      : curatedTrack.file;
 
   const activeWorld =
     songMode === "dream" && dream.ready
@@ -214,7 +222,9 @@ export default function App() {
       playNarration();
     }
 
-    if (activeAudioFile) void engine.loadAndPlay(activeAudioFile);
+    // Read from ref — always the freshest value, immune to stale closure
+    const file = activeAudioFileRef.current;
+    if (file) void engine.loadAndPlay(file);
     transitionTimer.current = setTimeout(() => {
       transitionTimer.current = null;
       setPhase((p) => (p === "entering" ? "experience" : p));
@@ -222,7 +232,7 @@ export default function App() {
         startClimaxWatcher();
       }
     }, 2600);
-  }, [engine, activeAudioFile, clearTransition, songMode, dream, playNarration, startClimaxWatcher]);
+  }, [engine, clearTransition, songMode, dream, playNarration, startClimaxWatcher]);
 
   const exit = useCallback(() => {
     clearTransition();

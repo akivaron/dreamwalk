@@ -71,10 +71,7 @@ export function useAudioEngine(): AudioEngine {
       ensureGraph();
       const ctx = ctxRef.current!;
       const el = elRef.current!;
-      if (ctx.state === "suspended") {
-        await ctx.resume();
-        console.warn("[DreamWalk audio] ctx resumed");
-      }
+
       const absolute = new URL(url, window.location.href).href;
       if (el.src !== absolute) {
         el.src = url;
@@ -82,12 +79,24 @@ export function useAudioEngine(): AudioEngine {
       } else {
         try { el.currentTime = 0; } catch { /* not seekable yet — ok */ }
       }
+
+      // Kick off resume() and play() in the SAME synchronous tick so both
+      // operations remain within the browser's user-gesture activation window.
+      // Awaiting resume() first (as before) hands control back to the event
+      // loop and can cause the gesture context to expire in iframe environments,
+      // leaving the AudioContext suspended even after play() resolves.
+      const resumeP = ctx.state !== "running" ? ctx.resume() : Promise.resolve();
+      const playP = el.play();
+
       try {
-        await el.play();
+        await Promise.all([resumeP, playP]);
         console.warn("[DreamWalk audio] playing ✓  ctx:", ctx.state);
         setIsPlaying(true);
       } catch (e) {
         console.error("[DreamWalk audio] play failed", e);
+        // If play() was blocked, try an unconditional resume in case the
+        // AudioContext itself is still suspended (e.g. first-load iframe policy).
+        try { await ctx.resume(); } catch { /* ignore */ }
         setIsPlaying(false);
       }
     },
