@@ -208,7 +208,32 @@ router.post("/mood", async (req: Request, res: Response) => {
     return;
   }
 
+  // Genre → mood heuristic used when Cyanite is unavailable
+  const GENRE_MOOD: Record<string, { energy: number; valence: number; danceability: number; tempo: number; acousticness: number; instrumentalness: number }> = {
+    "Rock": { energy: 0.78, valence: 0.46, danceability: 0.55, tempo: 120, acousticness: 0.12, instrumentalness: 0.08 },
+    "Pop": { energy: 0.65, valence: 0.62, danceability: 0.72, tempo: 118, acousticness: 0.22, instrumentalness: 0.05 },
+    "Hip-Hop/Rap": { energy: 0.72, valence: 0.54, danceability: 0.82, tempo: 92, acousticness: 0.15, instrumentalness: 0.04 },
+    "Electronic": { energy: 0.84, valence: 0.56, danceability: 0.82, tempo: 128, acousticness: 0.05, instrumentalness: 0.38 },
+    "Dance": { energy: 0.84, valence: 0.62, danceability: 0.87, tempo: 128, acousticness: 0.05, instrumentalness: 0.28 },
+    "R&B/Soul": { energy: 0.52, valence: 0.56, danceability: 0.72, tempo: 88, acousticness: 0.35, instrumentalness: 0.04 },
+    "Jazz": { energy: 0.38, valence: 0.62, danceability: 0.52, tempo: 98, acousticness: 0.75, instrumentalness: 0.52 },
+    "Classical": { energy: 0.32, valence: 0.52, danceability: 0.25, tempo: 82, acousticness: 0.92, instrumentalness: 0.85 },
+    "Country": { energy: 0.55, valence: 0.66, danceability: 0.62, tempo: 105, acousticness: 0.55, instrumentalness: 0.05 },
+    "Metal": { energy: 0.94, valence: 0.30, danceability: 0.38, tempo: 142, acousticness: 0.04, instrumentalness: 0.12 },
+    "Alternative": { energy: 0.62, valence: 0.48, danceability: 0.55, tempo: 118, acousticness: 0.22, instrumentalness: 0.12 },
+    "Folk": { energy: 0.38, valence: 0.58, danceability: 0.42, tempo: 98, acousticness: 0.78, instrumentalness: 0.15 },
+    "K-Pop": { energy: 0.74, valence: 0.66, danceability: 0.78, tempo: 122, acousticness: 0.12, instrumentalness: 0.08 },
+    "Ambient": { energy: 0.22, valence: 0.48, danceability: 0.22, tempo: 72, acousticness: 0.82, instrumentalness: 0.78 },
+    "Soundtrack": { energy: 0.45, valence: 0.50, danceability: 0.30, tempo: 90, acousticness: 0.65, instrumentalness: 0.70 },
+  };
+
+  const heuristicFromGenre = (genre: string) => {
+    const key = Object.keys(GENRE_MOOD).find((k) => genre.includes(k)) ?? "Pop";
+    return { ...(GENRE_MOOD[key] ?? GENRE_MOOD["Pop"]), source: "heuristic", genre };
+  };
+
   try {
+    // ── Try Cyanite first ──────────────────────────────────────────────────────
     const query = `
       query SearchTrack($term: String!) {
         spotifyTrackSearch(data: { term: $term, limit: 1 }) {
@@ -216,7 +241,6 @@ router.post("/mood", async (req: Request, res: Response) => {
             items {
               id
               name
-              popularity
               audioFeatures {
                 energy
                 valence
@@ -234,72 +258,81 @@ router.post("/mood", async (req: Request, res: Response) => {
       }
     `;
 
-    const searchRes = await fetch("https://api.cyanite.ai/graphql", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${cyaniteToken}`,
-      },
-      body: JSON.stringify({ query, variables: { term: `${artist} ${title}` } }),
-      signal: AbortSignal.timeout(10000),
-    });
+    let cyaniteOk = false;
+    try {
+      const searchRes = await fetch("https://api.cyanite.ai/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${cyaniteToken}`,
+        },
+        body: JSON.stringify({ query, variables: { term: `${artist} ${title}` } }),
+        signal: AbortSignal.timeout(8000),
+      });
 
-    if (!searchRes.ok) {
-      res.status(502).json({ error: "Cyanite API error" });
-      return;
-    }
-
-    const searchData = (await searchRes.json()) as {
-      data?: {
-        spotifyTrackSearch?: {
-          items?: Array<{
-            id: string;
-            name: string;
-            popularity?: number;
-            audioFeatures?: {
-              energy?: number;
-              valence?: number;
-              danceability?: number;
-              tempo?: number;
-              acousticness?: number;
-              instrumentalness?: number;
-            } | null;
-          }>;
-          message?: string;
+      if (searchRes.ok) {
+        const searchData = (await searchRes.json()) as {
+          data?: {
+            spotifyTrackSearch?: {
+              items?: Array<{
+                id: string;
+                name: string;
+                audioFeatures?: {
+                  energy?: number;
+                  valence?: number;
+                  danceability?: number;
+                  tempo?: number;
+                  acousticness?: number;
+                  instrumentalness?: number;
+                } | null;
+              }>;
+            };
+          };
+          errors?: Array<{ message: string }>;
         };
-      };
-      errors?: Array<{ message: string }>;
-    };
 
-    if (searchData.errors?.length) {
-      res.status(502).json({ error: searchData.errors[0]?.message ?? "Cyanite error" });
-      return;
+        if (!searchData.errors?.length) {
+          const track = searchData.data?.spotifyTrackSearch?.items?.[0];
+          const af = track?.audioFeatures;
+          if (af && track) {
+            cyaniteOk = true;
+            res.json({
+              trackId: track.id,
+              trackName: track.name,
+              energy: af.energy ?? null,
+              valence: af.valence ?? null,
+              danceability: af.danceability ?? null,
+              tempo: af.tempo ?? null,
+              acousticness: af.acousticness ?? null,
+              instrumentalness: af.instrumentalness ?? null,
+              source: "cyanite",
+            });
+          }
+        }
+      }
+    } catch {
+      // Cyanite unavailable — fall through to heuristic
     }
 
-    const track = searchData.data?.spotifyTrackSearch?.items?.[0];
-    if (!track) {
-      res.status(404).json({ error: "track not found in Cyanite" });
-      return;
+    if (cyaniteOk) return;
+
+    // ── iTunes genre-based heuristic fallback ─────────────────────────────────
+    let genre = "Pop";
+    try {
+      const itunesRes = await fetch(
+        `https://itunes.apple.com/search?term=${encodeURIComponent(`${artist} ${title}`)}&limit=1&entity=song&country=us`,
+        { signal: AbortSignal.timeout(6000) },
+      );
+      if (itunesRes.ok) {
+        const data = (await itunesRes.json()) as { results?: Array<{ primaryGenreName?: string }> };
+        const g = data.results?.[0]?.primaryGenreName;
+        if (g) genre = g;
+      }
+    } catch {
+      // keep default genre
     }
 
-    const af = track.audioFeatures;
-    if (!af) {
-      // audioFeatures not available on this plan — return null so frontend falls back to heuristic
-      res.status(404).json({ error: "audioFeatures not available" });
-      return;
-    }
-
-    res.json({
-      trackId: track.id,
-      trackName: track.name,
-      energy: af.energy ?? null,
-      valence: af.valence ?? null,
-      danceability: af.danceability ?? null,
-      tempo: af.tempo ?? null,
-      acousticness: af.acousticness ?? null,
-      instrumentalness: af.instrumentalness ?? null,
-      source: "cyanite",
-    });
+    res.json({ trackId: null, trackName: `${artist} - ${title}`, ...heuristicFromGenre(genre) });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: `mood analysis failed: ${msg.slice(0, 200)}` });

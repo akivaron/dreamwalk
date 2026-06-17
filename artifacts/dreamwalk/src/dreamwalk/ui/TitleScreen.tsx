@@ -13,6 +13,7 @@ interface TitleScreenProps {
   worldId: string;
   onSelectTrack: (id: string) => void;
   onSelectDreamSong: (song: DreamSong) => void;
+  onSelectWorld?: (worldId: string) => void;
   onEnter: () => void;
   onViewDetail?: (song: DreamSong) => void;
   trends: TrendingTrack[];
@@ -25,6 +26,7 @@ export function TitleScreen({
   worldId,
   onSelectTrack,
   onSelectDreamSong,
+  onSelectWorld,
   onEnter,
   onViewDetail,
   trends,
@@ -192,6 +194,33 @@ export function TitleScreen({
                 or choose below
               </span>
               <div className="h-px flex-1 bg-white/10" />
+            </div>
+
+            {/* ── World selector ────────────────────────────────── */}
+            <div className="flex flex-col gap-2">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-white/40">Choose world</p>
+              <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                {WORLDS.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => onSelectWorld?.(w.id)}
+                    className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-all duration-300 ${
+                      w.id === worldId
+                        ? "border-white/55 bg-white/15"
+                        : "border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10"
+                    }`}
+                    style={
+                      w.id === worldId
+                        ? { background: `linear-gradient(135deg, ${w.colors.skyTop}55 0%, ${w.colors.skyBottom}55 100%)` }
+                        : undefined
+                    }
+                  >
+                    <span className="block text-[10px] font-light tracking-widest text-white/90 whitespace-nowrap">
+                      {w.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* ── Curated list ──────────────────────────────────── */}

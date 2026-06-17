@@ -7,6 +7,7 @@ import { terrainHeight } from "./terrainField";
 import type { World } from "../types";
 import { mulberry32 } from "../rng";
 import { Butterflies } from "./Butterflies";
+import { joystickInput } from "./joystickStore";
 
 const WATER_LEVEL = -1.2;
 
@@ -238,6 +239,7 @@ export function CameraRig({ world }: { world: World }) {
     
     g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
     g.computeVertexNormals();
+    g.computeBoundingSphere();
     return g;
   }, [world]);
 
@@ -333,6 +335,14 @@ export function CameraRig({ world }: { world: World }) {
     if (k["KeyS"] || k["ArrowDown"]) move.current.sub(forward.current);
     if (k["KeyA"] || k["ArrowLeft"]) move.current.sub(rightV.current);
     if (k["KeyD"] || k["ArrowRight"]) move.current.add(rightV.current);
+
+    // Mobile virtual joystick input
+    if (joystickInput.active) {
+      const jx = joystickInput.dx;
+      const jy = joystickInput.dy;
+      move.current.add(forward.current.clone().multiplyScalar(-jy));
+      move.current.add(rightV.current.clone().multiplyScalar(jx));
+    }
     
     if (move.current.lengthSq() > 0) {
       move.current.normalize().multiplyScalar(speed * dt);
@@ -488,6 +498,7 @@ export function CameraRig({ world }: { world: World }) {
       }
       posAttr.needsUpdate = true;
       g.computeVertexNormals();
+      g.computeBoundingSphere();
     }
 
     // Deform the main robe (baju) skirt in the wind and movement drag
@@ -833,7 +844,7 @@ export function CameraRig({ world }: { world: World }) {
       </mesh>
 
       {/* Flowing Back Cape (Jubah) */}
-      <mesh ref={capeRef} geometry={capeGeom} position={[0, 1.46, -0.18]} castShadow receiveShadow>
+      <mesh ref={capeRef} geometry={capeGeom} position={[0, 1.46, -0.18]} castShadow receiveShadow frustumCulled={false}>
         <meshStandardMaterial
           vertexColors
           roughness={0.65}

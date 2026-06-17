@@ -11,14 +11,18 @@ interface HudProps {
   world: World;
   isPlaying: boolean;
   dreamContext: DreamContext;
+  volume: number;
   onToggle: () => void;
   onScreenshot: () => void;
   onExit: () => void;
   onToggleNarration: () => void;
+  onVolumeChange: (v: number) => void;
   wishVisible?: boolean;
   hasWished?: boolean;
   onWishOpen?: () => void;
 }
+
+const isTouchDevice = typeof window !== "undefined" && "ontouchstart" in window;
 
 export function Hud({
   title,
@@ -27,10 +31,12 @@ export function Hud({
   world,
   isPlaying,
   dreamContext,
+  volume,
   onToggle,
   onScreenshot,
   onExit,
   onToggleNarration,
+  onVolumeChange,
   wishVisible = false,
   hasWished = false,
   onWishOpen,
@@ -165,6 +171,21 @@ export function Hud({
               )}
             </button>
 
+            {/* Volume slider */}
+            <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/15 bg-black/25 px-4 py-2.5 backdrop-blur-md">
+              <span className="text-[9px] uppercase tracking-[0.25em] text-white/35 select-none">Vol</span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.02"
+                value={volume}
+                onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+                className="h-1 w-20 cursor-pointer accent-white/70"
+                aria-label="Volume"
+              />
+            </div>
+
             {dreamContext.narrationText && (
               <button
                 onClick={onToggleNarration}
@@ -209,7 +230,9 @@ export function Hud({
             transition={{ duration: 1.4 }}
           >
             <span className="text-xs tracking-[0.3em] text-white/40">
-              Drag to look &middot; W A S D to walk
+              {isTouchDevice
+                ? "Drag right to look \u00b7 Joystick to walk"
+                : "Drag to look \u00b7 W A S D to walk"}
             </span>
           </motion.div>
         )}

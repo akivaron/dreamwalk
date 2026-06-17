@@ -11,7 +11,7 @@ interface CyaniteAudioFeaturesResponse {
   tempo: number | null;
   acousticness: number | null;
   instrumentalness: number | null;
-  source: "cyanite";
+  source: "cyanite" | "heuristic";
 }
 
 function deriveMood(energy: number, valence: number, acousticness: number): MoodPrimary {
@@ -55,7 +55,6 @@ export async function fetchMoodFromCyanite(
       secondary: null,
       energy,
       valence,
-      source: "cyanite",
     };
   } catch {
     return null;

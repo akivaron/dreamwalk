@@ -39,7 +39,7 @@ export function Experience({
 }: ExperienceProps) {
   return (
     <Canvas
-      shadows={{ type: THREE.PCFSoftShadowMap }}
+      shadows={{ type: THREE.PCFShadowMap }}
       dpr={[1, 1.75]}
       gl={{
         antialias: true,

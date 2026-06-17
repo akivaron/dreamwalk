@@ -18,6 +18,7 @@ import { generateNarration } from "./dreamwalk/dream/api/narration";
 import type { DreamSong, TrendingTrack } from "./dreamwalk/dream/types";
 import { songDetailStore } from "./dreamwalk/songDetailStore";
 import { DreamWishes } from "./dreamwalk/wishes/DreamWishes";
+import { VirtualJoystick } from "./dreamwalk/ui/VirtualJoystick";
 
 type Phase = "title" | "entering" | "experience" | "exiting";
 
@@ -46,6 +47,7 @@ export default function App() {
   const [wishVisible, setWishVisible] = useState(false);
   const [hasWished, setHasWished] = useState(false);
   const [wishModalOpen, setWishModalOpen] = useState(false);
+  const [worldOverride, setWorldOverride] = useState<string | null>(null);
 
   const engine = useAudioEngine();
   const screenshotFn = useRef<(() => string) | null>(null);
@@ -68,10 +70,11 @@ export default function App() {
       ? toProxiedUrl(dream.context.song?.previewUrl)
       : curatedTrack.file;
 
-  const activeWorld =
-    songMode === "dream" && dream.ready
-      ? buildWorldFromContext(dream.context)
-      : WORLDS.find((w) => w.id === (WORLDS.find((x) => x.id === curatedTrack.suggestedWorld) ? curatedTrack.suggestedWorld : "savana-valley")) ?? WORLDS[0];
+  const activeWorld = (() => {
+    if (worldOverride) return WORLDS.find((w) => w.id === worldOverride) ?? WORLDS[0];
+    if (songMode === "dream" && dream.ready) return buildWorldFromContext(dream.context);
+    return WORLDS.find((w) => w.id === curatedTrack.suggestedWorld) ?? WORLDS[0];
+  })();
 
   const activeTitle =
     songMode === "dream" && dream.context.song
@@ -376,21 +379,26 @@ export default function App() {
       )}
 
       {phase === "experience" && (
-        <Hud
-          title={activeTitle}
-          artist={activeArtist}
-          artworkUrl={activeArtwork}
-          world={activeWorld}
-          isPlaying={engine.isPlaying}
-          dreamContext={dream.context}
-          onToggle={() => void engine.toggle()}
-          onScreenshot={captureScreenshot}
-          onExit={exit}
-          onToggleNarration={dream.toggleNarration}
-          wishVisible={wishVisible}
-          hasWished={hasWished}
-          onWishOpen={() => setWishModalOpen(true)}
-        />
+        <>
+          <Hud
+            title={activeTitle}
+            artist={activeArtist}
+            artworkUrl={activeArtwork}
+            world={activeWorld}
+            isPlaying={engine.isPlaying}
+            dreamContext={dream.context}
+            volume={engine.volume}
+            onToggle={() => void engine.toggle()}
+            onScreenshot={captureScreenshot}
+            onExit={exit}
+            onToggleNarration={dream.toggleNarration}
+            onVolumeChange={engine.setVolume}
+            wishVisible={wishVisible}
+            hasWished={hasWished}
+            onWishOpen={() => setWishModalOpen(true)}
+          />
+          <VirtualJoystick />
+        </>
       )}
 
       <AnimatePresence>
@@ -401,6 +409,7 @@ export default function App() {
             worldId={activeWorld.id}
             onSelectTrack={handleSelectTrack}
             onSelectDreamSong={handleSelectDreamSong}
+            onSelectWorld={(id) => setWorldOverride(id)}
             onEnter={enter}
             onViewDetail={handleViewDetail}
             trends={dream.context.trends}

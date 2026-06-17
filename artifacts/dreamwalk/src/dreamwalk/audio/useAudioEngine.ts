@@ -3,9 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export interface AudioEngine {
   analyser: AnalyserNode | null;
   isPlaying: boolean;
+  volume: number;
   loadAndPlay: (url: string) => Promise<void>;
   toggle: () => Promise<void>;
   stop: () => void;
+  setVolume: (v: number) => void;
   getProgress: () => { time: number; duration: number };
 }
 
@@ -30,11 +32,9 @@ export function useAudioEngine(): AudioEngine {
   const srcRef = useRef<MediaElementAudioSourceNode | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolumeState] = useState(0.85);
 
   const ensureGraph = useCallback(() => {
-    // Recover from a closed AudioContext — happens after HMR or component remount.
-    // createMediaElementSource can only be called ONCE per audio element, so we must
-    // also create a fresh Audio element when the context is rebuilt.
     if (ctxRef.current?.state === "closed") {
       console.warn("[DreamWalk audio] context was closed — rebuilding graph");
       ctxRef.current = null;
@@ -65,12 +65,21 @@ export function useAudioEngine(): AudioEngine {
     }
   }, []);
 
+  const setVolume = useCallback((v: number) => {
+    const clamped = Math.max(0, Math.min(1, v));
+    setVolumeState(clamped);
+    if (elRef.current) elRef.current.volume = clamped;
+  }, []);
+
   const loadAndPlay = useCallback(
     async (url: string) => {
       console.warn("[DreamWalk audio] loadAndPlay →", url.slice(0, 120));
       ensureGraph();
       const ctx = ctxRef.current!;
       const el = elRef.current!;
+
+      // Restore volume on the audio element in case it was reset
+      el.volume = volume;
 
       const absolute = new URL(url, window.location.href).href;
       if (el.src !== absolute) {
@@ -80,11 +89,6 @@ export function useAudioEngine(): AudioEngine {
         try { el.currentTime = 0; } catch { /* not seekable yet — ok */ }
       }
 
-      // Kick off resume() and play() in the SAME synchronous tick so both
-      // operations remain within the browser's user-gesture activation window.
-      // Awaiting resume() first (as before) hands control back to the event
-      // loop and can cause the gesture context to expire in iframe environments,
-      // leaving the AudioContext suspended even after play() resolves.
       const resumeP = ctx.state !== "running" ? ctx.resume() : Promise.resolve();
       const playP = el.play();
 
@@ -94,13 +98,11 @@ export function useAudioEngine(): AudioEngine {
         setIsPlaying(true);
       } catch (e) {
         console.error("[DreamWalk audio] play failed", e);
-        // If play() was blocked, try an unconditional resume in case the
-        // AudioContext itself is still suspended (e.g. first-load iframe policy).
         try { await ctx.resume(); } catch { /* ignore */ }
         setIsPlaying(false);
       }
     },
-    [ensureGraph],
+    [ensureGraph, volume],
   );
 
   const toggle = useCallback(async () => {
@@ -142,5 +144,5 @@ export function useAudioEngine(): AudioEngine {
     };
   }, []);
 
-  return { analyser, isPlaying, loadAndPlay, toggle, stop, getProgress };
+  return { analyser, isPlaying, volume, loadAndPlay, toggle, stop, setVolume, getProgress };
 }
