@@ -5,14 +5,111 @@ import { wishStore } from "./wishStore";
 import { fetchWishes, submitWish } from "./api";
 import type { WishSample } from "./types";
 
-const WORLD_ICON: Record<string, string> = {
-  "midnight-ocean": "💫",
-  "eternal-winter": "❄️",
-  "mystic-valley": "✨",
-  "savana-valley": "🏮",
-  "golden-sunrise": "🏮",
-  "crimson-dusk": "⭐",
+const SPIRIT_COLORS: Record<string, [number, number, number]> = {
+  "midnight-ocean":  [90,  185, 255],
+  "eternal-winter":  [175, 225, 255],
+  "mystic-valley":   [75,  255, 155],
+  "savana-valley":   [255, 175,  55],
+  "golden-sunrise":  [255, 205,  80],
+  "crimson-dusk":    [255, 225, 110],
 };
+
+function SpiritParticles({
+  worldId,
+  size = 92,
+}: {
+  worldId: string;
+  size?: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const [r, g, b] = SPIRIT_COLORS[worldId] ?? [255, 220, 140];
+    const W = canvas.width;
+    const H = canvas.height;
+    const cx = W / 2;
+    const cy = H / 2;
+
+    const particles = Array.from({ length: 8 }, (_, i) => ({
+      angle: (i / 8) * Math.PI * 2,
+      orbitR: (W * 0.18) + Math.random() * (W * 0.10),
+      speed: 0.012 + Math.random() * 0.010,
+      size: (W * 0.028) + Math.random() * (W * 0.018),
+      phase: Math.random() * Math.PI * 2,
+    }));
+
+    let t = 0;
+    let animId: number;
+
+    function draw() {
+      t++;
+      ctx!.clearRect(0, 0, W, H);
+
+      // Core glow
+      const coreAlpha = 0.52 + Math.sin(t * 0.038) * 0.22;
+      const coreR = W * 0.12 + Math.sin(t * 0.026) * W * 0.02;
+
+      const outerGrad = ctx!.createRadialGradient(cx, cy, 0, cx, cy, coreR * 3.5);
+      outerGrad.addColorStop(0, `rgba(${r},${g},${b},${coreAlpha * 0.55})`);
+      outerGrad.addColorStop(0.5, `rgba(${r},${g},${b},${coreAlpha * 0.18})`);
+      outerGrad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx!.beginPath();
+      ctx!.arc(cx, cy, coreR * 3.5, 0, Math.PI * 2);
+      ctx!.fillStyle = outerGrad;
+      ctx!.fill();
+
+      const coreGrad = ctx!.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+      coreGrad.addColorStop(0, `rgba(255,255,255,${coreAlpha})`);
+      coreGrad.addColorStop(0.35, `rgba(${r},${g},${b},${coreAlpha * 0.9})`);
+      coreGrad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+      ctx!.beginPath();
+      ctx!.arc(cx, cy, coreR, 0, Math.PI * 2);
+      ctx!.fillStyle = coreGrad;
+      ctx!.fill();
+
+      // Orbiting sparks
+      particles.forEach((p) => {
+        p.angle += p.speed;
+        const px = cx + Math.cos(p.angle) * p.orbitR;
+        const py = cy + Math.sin(p.angle) * p.orbitR * 0.55;
+        const pAlpha = 0.42 + Math.sin(t * 0.065 + p.phase) * 0.38;
+
+        const pGrad = ctx!.createRadialGradient(px, py, 0, px, py, p.size * 2.8);
+        pGrad.addColorStop(0, `rgba(255,255,255,${pAlpha})`);
+        pGrad.addColorStop(0.38, `rgba(${r},${g},${b},${pAlpha * 0.75})`);
+        pGrad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+        ctx!.beginPath();
+        ctx!.arc(px, py, p.size * 2.8, 0, Math.PI * 2);
+        ctx!.fillStyle = pGrad;
+        ctx!.fill();
+
+        ctx!.beginPath();
+        ctx!.arc(px, py, p.size * 0.45, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(255,255,255,${pAlpha})`;
+        ctx!.fill();
+      });
+
+      animId = requestAnimationFrame(draw);
+    }
+
+    draw();
+    return () => cancelAnimationFrame(animId);
+  }, [worldId]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={size}
+      style={{ display: "block" }}
+    />
+  );
+}
 
 function AmbientWishEvent({
   wish,
@@ -28,13 +125,11 @@ function AmbientWishEvent({
     return () => clearTimeout(t);
   }, [onDone]);
 
-  const icon = WORLD_ICON[worldId] ?? "✨";
-
   return (
     <div
       style={{
         position: "fixed",
-        top: "20%",
+        top: "18%",
         left: "50%",
         transform: "translateX(-50%)",
         pointerEvents: "none",
@@ -42,26 +137,20 @@ function AmbientWishEvent({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: "0.8rem",
+        gap: "0.7rem",
         animation: "ambientWishFade 9.5s ease forwards",
       }}
     >
-      <span
-        style={{
-          fontSize: "1.8rem",
-          display: "block",
-          animation: "ambientFloat 4s ease-in-out infinite, ambientGlow 3s ease-in-out infinite",
-        }}
-      >
-        {icon}
-      </span>
+      <div style={{ animation: "ambientFloat 4s ease-in-out infinite" }}>
+        <SpiritParticles worldId={worldId} size={92} />
+      </div>
 
       <div
         style={{
-          background: "rgba(4,2,18,0.58)",
+          background: "rgba(4,2,18,0.55)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.10)",
+          border: "1px solid rgba(255,255,255,0.09)",
           borderRadius: "1.1rem",
           padding: "0.85rem 1.5rem",
           maxWidth: "min(76vw, 310px)",
@@ -170,11 +259,9 @@ export function DreamWishes({ songId, songTitle, worldId }: DreamWishesProps) {
       setReleaseVisible(true);
       setReleaseKey((k) => k + 1);
       setTimeout(() => setFlashVisible(false), 900);
-      setTimeout(() => setReleaseVisible(false), 3200);
+      setTimeout(() => setReleaseVisible(false), 3400);
     }
   }
-
-  const releaseIcon = WORLD_ICON[worldId] ?? "✨";
 
   return (
     <>
@@ -192,17 +279,13 @@ export function DreamWishes({ songId, songTitle, worldId }: DreamWishesProps) {
         }
         @keyframes ambientFloat {
           0%, 100% { transform: translateY(0); }
-          50%       { transform: translateY(-9px); }
-        }
-        @keyframes ambientGlow {
-          0%, 100% { filter: drop-shadow(0 0 5px rgba(255,255,255,0.4)); }
-          50%       { filter: drop-shadow(0 0 16px rgba(255,255,255,0.85)); }
+          50%       { transform: translateY(-10px); }
         }
         @keyframes wishRelease {
-          0%   { opacity: 0; transform: translateX(-50%) translateY(0)    scale(0.55); }
-          10%  { opacity: 1; transform: translateX(-50%) translateY(-14px) scale(1.25); }
-          88%  { opacity: 0.55; transform: translateX(-50%) translateY(-58vh) scale(1.0); }
-          100% { opacity: 0; transform: translateX(-50%) translateY(-63vh) scale(0.85); }
+          0%   { opacity: 0; transform: translateX(-50%) translateY(0)    scale(0.5); }
+          10%  { opacity: 1; transform: translateX(-50%) translateY(-12px) scale(1.2); }
+          88%  { opacity: 0.5; transform: translateX(-50%) translateY(-56vh) scale(0.9); }
+          100% { opacity: 0; transform: translateX(-50%) translateY(-62vh) scale(0.7); }
         }
       `}</style>
 
@@ -214,7 +297,7 @@ export function DreamWishes({ songId, songTitle, worldId }: DreamWishesProps) {
             pointerEvents: "none",
             zIndex: 90,
             background:
-              "radial-gradient(ellipse at center, rgba(200,170,255,0.52) 0%, transparent 68%)",
+              "radial-gradient(ellipse at center, rgba(200,170,255,0.50) 0%, transparent 68%)",
             animation: "wishFlash 0.9s ease forwards",
           }}
         />
@@ -229,12 +312,10 @@ export function DreamWishes({ songId, songTitle, worldId }: DreamWishesProps) {
             left: "50%",
             pointerEvents: "none",
             zIndex: 92,
-            fontSize: "2.6rem",
-            lineHeight: 1,
-            animation: "wishRelease 3.0s cubic-bezier(0.22,1,0.36,1) forwards",
+            animation: "wishRelease 3.2s cubic-bezier(0.22,1,0.36,1) forwards",
           }}
         >
-          {releaseIcon}
+          <SpiritParticles worldId={worldId} size={80} />
         </div>
       )}
 
