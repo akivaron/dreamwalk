@@ -1,5 +1,46 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "yMtBovn6tonHdnWo1x9X4"
+uri = "file://artifacts/dreamwalk-promo/public/images/world-forest.png"
+type = "image"
+title = "forest glowing mist"
+
+[[generated]]
+id = "TRCJzA2v3OLn5ARXSaa2o"
+uri = "file://artifacts/dreamwalk-promo/public/images/world-desert.png"
+type = "image"
+title = "desert glowing sand"
+
+[[generated]]
+id = "tZNuSUrs_t_i753DUVJNG"
+uri = "file://artifacts/dreamwalk-promo/public/images/world-cityscape.png"
+type = "image"
+title = "cityscape neon fog"
+
+[[generated]]
+id = "zlDJ34dmDR2_nlZqCsh09"
+uri = "file://artifacts/dreamwalk-promo/public/images/world-sakura.png"
+type = "image"
+title = "sakura glowing petals"
+
+[[generated]]
+id = "1Npdy7W0Vvw_8tcl2OS33"
+uri = "file://artifacts/dreamwalk-promo/public/images/world-crystal.png"
+type = "image"
+title = "crystal cave purple"
+
+[[generated]]
+id = "E-nQmQRnIzloSmf1Jsb2J"
+uri = "file://artifacts/dreamwalk-promo/public/images/world-ocean.png"
+type = "image"
+title = "ocean bioluminescence"
+
+[[generated]]
+id = "Jb7W3hc5yDNZxiMZRNho1"
+uri = "file://artifacts/dreamwalk-promo/public/images/hero-bg.png"
+type = "image"
+title = "hero particles"
 
 [[outputs]]
 id = "2bCE-EZEINwlDbHA5kjs5"
@@ -24,3 +65,9 @@ id = "OZD4bL_h5TNq9lx3UcLnp"
 uri = "file://artifacts/dreamwalk/public/audio/moonlit-tide.mp3"
 type = "audio"
 title = "dreamwalk ocean"
+
+[[outputs]]
+id = "4T8s5xRC6hD3KgCzR-zQL"
+uri = "file://artifacts/dreamwalk-promo/public/audio/bg_music.mp3"
+type = "audio"
+title = "background music"

@@ -1,0 +1,31 @@
+kind = "video"
+previewPath = "/dreamwalk-promo/"
+title = "DreamWalk Promo Video"
+version = "1.0.0"
+id = "artifacts/dreamwalk-promo"
+router = "path"
+
+[[integratedSkills]]
+name = "video-js"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/dreamwalk-promo/" ]
+localPort = 18181
+
+[services.development]
+run = "pnpm --filter @workspace/dreamwalk-promo run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dreamwalk-promo", "run", "build" ]
+publicDir = "artifacts/dreamwalk-promo/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18181"
+BASE_PATH = "/dreamwalk-promo/"
