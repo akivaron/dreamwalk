@@ -2,6 +2,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useMemo } from "react";
 import * as THREE from "three";
 import { audioLevels, dreamEvents, stemLevels } from "../audio/audioStore";
+import { wishStore } from "../wishes/wishStore";
 import { terrainHeight } from "./terrainField";
 import type { World } from "../types";
 import { mulberry32 } from "../rng";
@@ -156,6 +157,7 @@ export function CameraRig({ world }: { world: World }) {
   }, [world]);
   const yaw = useRef(0);
   const pitch = useRef(-0.03);
+  const wishTiltRef = useRef(0);
   const keys = useRef<Record<string, boolean>>({});
   const dragging = useRef(false);
   const last = useRef({ x: 0, y: 0 });
@@ -648,11 +650,25 @@ export function CameraRig({ world }: { world: World }) {
       camera.updateProjectionMatrix();
     }
 
+    // 6b. Wish camera tilt — look upward after submitting a wish
+    if (wishStore.tiltCamera) {
+      wishStore.tiltTimer += dt;
+      const targetTilt = Math.min(wishStore.tiltTimer / 1.5, 1) * 0.40;
+      wishTiltRef.current = THREE.MathUtils.lerp(wishTiltRef.current, targetTilt, 2.5 * dt);
+      if (wishStore.tiltTimer > 3.8) {
+        wishStore.tiltCamera = false;
+        wishStore.tiltTimer = 0;
+      }
+    } else {
+      wishTiltRef.current = THREE.MathUtils.lerp(wishTiltRef.current, 0, 1.2 * dt);
+    }
+
     // 7. Orbit Camera behind the Traveler (Third Person View)
     const distance = 9.0;
-    const targetCamX = pos.current.x + Math.sin(yaw.current) * Math.cos(pitch.current) * distance;
-    const targetCamZ = pos.current.z + Math.cos(yaw.current) * Math.cos(pitch.current) * distance;
-    const targetCamY = currentGround.current + jumpY.current + 2.2 + Math.sin(-pitch.current) * distance + 1.0;
+    const effectivePitch = pitch.current - wishTiltRef.current;
+    const targetCamX = pos.current.x + Math.sin(yaw.current) * Math.cos(effectivePitch) * distance;
+    const targetCamZ = pos.current.z + Math.cos(yaw.current) * Math.cos(effectivePitch) * distance;
+    const targetCamY = currentGround.current + jumpY.current + 2.2 + Math.sin(-effectivePitch) * distance + 1.0;
 
     // Prevent camera from clipping below the terrain or water waves
     let landCamY = terrainHeight(world.terrain, targetCamX, targetCamZ);

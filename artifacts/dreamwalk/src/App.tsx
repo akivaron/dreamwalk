@@ -17,6 +17,7 @@ import { buildWorldFromContext } from "./dreamwalk/dream/worldBuilder";
 import { generateNarration } from "./dreamwalk/dream/api/narration";
 import type { DreamSong, TrendingTrack } from "./dreamwalk/dream/types";
 import { songDetailStore } from "./dreamwalk/songDetailStore";
+import { DreamWishes } from "./dreamwalk/wishes/DreamWishes";
 
 type Phase = "title" | "entering" | "experience" | "exiting";
 
@@ -73,6 +74,7 @@ export default function App() {
     songMode === "dream" && dream.context.song?.artworkUrl
       ? dream.context.song.artworkUrl
       : undefined;
+  const activeSongId = `${activeTitle}::${activeArtist}`;
   const activeAudioFile: string | null =
     songMode === "dream"
       ? toProxiedUrl(dream.context.song?.previewUrl)
@@ -322,6 +324,14 @@ export default function App() {
           background: `radial-gradient(circle at 50% 45%, ${activeWorld.colors.fog} 0%, ${activeWorld.colors.skyBottom} 70%, #000 130%)`,
         }}
       />
+
+      {phase === "experience" && (
+        <DreamWishes
+          songId={activeSongId}
+          songTitle={activeTitle}
+          worldId={activeWorld.id}
+        />
+      )}
 
       {phase === "experience" && (
         <Hud

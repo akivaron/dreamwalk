@@ -1,0 +1,141 @@
+Implement a feature called "Dream Wishes".
+
+This feature should feel magical and emotional,
+not like a social feed.
+
+------------------------------------------------
+ENTER DREAM
+------------------------------------------------
+
+After the user spends 15 seconds inside the Dream,
+show a floating pill button at the bottom center.
+
+Button:
+
+✨ Leave a Wish
+
+The button should gently fade in.
+
+------------------------------------------------
+WISH MODAL
+------------------------------------------------
+
+When clicked:
+
+Open a centered modal.
+
+Title:
+✨ Make a Wish
+
+Subtitle:
+What does this song make you hope for?
+
+Input:
+Multiline textarea.
+
+Placeholder examples:
+
+I hope I find peace.
+I hope my family stays healthy.
+I hope I achieve my dreams.
+
+Character limit:
+200.
+
+Buttons:
+
+Cancel
+Release Wish
+
+The modal should feel cinematic,
+with blurred glass and soft particles.
+
+------------------------------------------------
+SUBMIT ANIMATION
+------------------------------------------------
+
+After submission:
+
+Close modal.
+
+Trigger:
+
+- camera slowly tilts upward
+- particles appear
+- soft glow
+- release animation
+
+Transform the wish into a world object.
+
+Depending on world type:
+
+Ocean:
+message in a bottle.
+
+Night:
+star.
+
+Forest:
+firefly.
+
+Kingdom:
+lantern.
+
+Snow:
+glowing snowflake.
+
+------------------------------------------------
+COMMUNITY WISHES
+------------------------------------------------
+
+Do NOT use a feed.
+
+Community wishes should exist inside the world.
+
+Display:
+
+🌠 1,284 wishes in this dream.
+
+Random wishes should appear as glowing objects.
+
+When user clicks one:
+
+Show:
+
+✨ I hope I find happiness.
+
+Anonymous listener
+2 days ago
+
+Buttons:
+
+❤️ Send Light
+Close
+
+------------------------------------------------
+UI PRINCIPLES
+------------------------------------------------
+
+No sidebars.
+No social media feed.
+No comment section.
+No chat UI.
+
+Everything should feel:
+
+- peaceful
+- magical
+- emotional
+- part of the world
+
+The experience should feel like
+discovering messages left by other travelers.
+
+Inspired by:
+
+Journey
+Sky: Children of the Light
+
+The user should feel:
+
+"I am not alone in this song."

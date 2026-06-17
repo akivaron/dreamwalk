@@ -1,7 +1,1 @@
-- [DreamWalk Dream Engine](dreamwalk-dream-engine.md) — useDreamContext chain: iTunes→lyrics→keywords→mood→world→narration; concerts REMOVED per user.
-- [SongDetail analytics](songdetail-analytics.md) — Musixmatch /api/track-details endpoint feeds Analytics card + WorldListenerMap; intensity model in calcHubIntensity.
-- [Cyanite plan limits](cyanite-plan-limits.md) — Cyanite free tier constraints and mood tag fields.
-- [DreamWalk API proxy](dreamwalk-api-proxy.md) — API server proxy patterns for external music APIs.
-- [R3F patterns](r3f-patterns.md) — React Three Fiber patterns used in DreamWalk scene.
-- [WebGL sandbox](webgl-sandbox.md) — WebGL context handling and fallback patterns.
-- [ElevenLabs music](elevenlabs-music.md) — ElevenLabs narration integration details.
+- [Dream Wishes architecture](dream-wishes.md) — wishes use global mutable wishStore (like audioStore) to bridge R3F canvas ↔ HTML overlay layer
