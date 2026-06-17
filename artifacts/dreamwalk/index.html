@@ -19,6 +19,32 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Runs synchronously before any module scripts (including /@vite/client),
+         so this capture-phase handler fires before Vite's error overlay listener. -->
+    <script>
+      (function () {
+        var BENIGN = [
+          /Cannot close a closed AudioContext/i,
+          /AudioContext/i,
+          /WebGLRenderer/i,
+          /Context Lost/i,
+          /Converting circular structure to JSON/i,
+        ];
+        function isBenign(msg) {
+          return BENIGN.some(function (re) { return re.test(msg); });
+        }
+        window.addEventListener('unhandledrejection', function (e) {
+          var reason = e.reason;
+          var msg = typeof reason === 'string'
+            ? reason
+            : (reason && reason.message ? reason.message : String(reason));
+          if (isBenign(msg)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        }, true);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

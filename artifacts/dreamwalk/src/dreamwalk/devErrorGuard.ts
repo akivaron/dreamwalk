@@ -40,6 +40,9 @@ const BENIGN_PATTERNS: RegExp[] = [
   /The above error occurred in the/i,
   /DreamWalk scene failed to render/i,
   /React will try to recreate this component tree/i,
+  // AudioContext cleanup during HMR — benign dev-only artifact
+  /Cannot close a closed AudioContext/i,
+  /AudioContext/i,
 ];
 
 /** Safely convert any value to a string without throwing. */
