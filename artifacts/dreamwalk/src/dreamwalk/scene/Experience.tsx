@@ -21,7 +21,6 @@ import { Birds } from "./Birds";
 import { Fireflies } from "./Fireflies";
 import { Waterfall } from "./Waterfall";
 import { LyricConstellation } from "./LyricConstellation";
-import { WishObjects } from "../wishes/WishObjects";
 
 interface ExperienceProps {
   world: World;
@@ -69,7 +68,6 @@ export function Experience({
         <Birds />
         <Fireflies world={world} />
         <Particles world={world} />
-        <WishObjects world={world} />
         <LyricConstellation syncedLyrics={syncedLyrics} />
         <PostFX world={world} />
         <ScreenshotHelper onReady={onScreenshotReady} />

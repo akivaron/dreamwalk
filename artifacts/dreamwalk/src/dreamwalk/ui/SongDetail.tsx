@@ -9,6 +9,8 @@ import {
 import type { DreamSong, LyricsData, MoodData, TrendingTrack } from "../dream/types";
 import { fetchLyrics } from "../dream/api/lyrics";
 import { extractKeywords, inferMood } from "../dream/keywordAnalysis";
+import { fetchWishes } from "../wishes/api";
+import type { WishSample } from "../wishes/types";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -674,6 +676,9 @@ export function SongDetail({
   const [showEndModal, setShowEndModal] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [wishSamples, setWishSamples] = useState<WishSample[]>([]);
+  const [wishCount, setWishCount] = useState(0);
+  const [wishIdx, setWishIdx] = useState(0);
 
   // Fix scroll — body has overflow:hidden for the 3D experience
   useEffect(() => {
@@ -715,6 +720,20 @@ export function SongDetail({
   useEffect(() => {
     return () => { audioRef.current?.pause(); };
   }, []);
+
+  useEffect(() => {
+    const songId = `${song.title}::${song.artist}`;
+    fetchWishes(songId).then((data) => {
+      setWishSamples(data.samples);
+      setWishCount(data.count);
+    });
+  }, [song.title, song.artist]);
+
+  useEffect(() => {
+    if (wishSamples.length < 2) return;
+    const t = setInterval(() => setWishIdx((i) => i + 1), 5000);
+    return () => clearInterval(t);
+  }, [wishSamples.length]);
 
   // ── Share ──
   const handleShare = async () => {
@@ -1503,6 +1522,53 @@ export function SongDetail({
             </GlassCard>
           </motion.section>
         )}
+
+        {/* ── Wishes in this Dream ── */}
+        <motion.section
+          className="mt-8"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.32 }}
+        >
+          <GlassCard className="p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="text-base leading-none select-none">🌠</span>
+              <h2 className="text-[10px] uppercase tracking-[0.4em] text-white/40">
+                Wishes in this dream
+              </h2>
+              {wishCount > 0 && (
+                <span className="ml-auto text-xs text-white/25">
+                  {wishCount.toLocaleString()}
+                </span>
+              )}
+            </div>
+
+            {wishSamples.length === 0 ? (
+              <p className="py-3 text-center text-sm italic text-white/25">
+                No wishes yet. Enter the dream to leave one.
+              </p>
+            ) : (
+              <div className="relative" style={{ minHeight: "3.6rem" }}>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={wishIdx % wishSamples.length}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.85 }}
+                    className="absolute inset-0 flex items-center justify-center px-2 text-center text-sm italic leading-relaxed text-white/60"
+                  >
+                    &ldquo;{wishSamples[wishIdx % wishSamples.length]?.wishText}&rdquo;
+                  </motion.p>
+                </AnimatePresence>
+              </div>
+            )}
+
+            <p className="mt-4 text-center text-[11px] text-white/20">
+              Enter the dream to leave a wish
+            </p>
+          </GlassCard>
+        </motion.section>
 
         {/* ── World Listener Map ── */}
         <motion.section
