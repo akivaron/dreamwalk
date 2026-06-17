@@ -63,8 +63,8 @@ export function SpiritBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvasRef.current) return;
+    const canvas: HTMLCanvasElement = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
