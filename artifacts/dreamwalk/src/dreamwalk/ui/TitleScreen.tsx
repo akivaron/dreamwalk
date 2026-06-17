@@ -5,6 +5,7 @@ import type { DreamSong, TrendingTrack } from "../dream/types";
 import { SongSearch } from "./SongSearch";
 import { TrendingDreams } from "./TrendingDreams";
 import { WORLDS } from "../worlds";
+import { SpiritBackground } from "./SpiritBackground";
 
 interface TitleScreenProps {
   tracks: TrackDef[];
@@ -100,6 +101,7 @@ export function TitleScreen({
       }}
     >
       <div className="pointer-events-none absolute inset-0 bg-black/38" />
+      <SpiritBackground />
 
       {/* ── Header: logo + subtitle ─────────────────────────────── */}
       <div className="relative shrink-0 px-6 pt-10 pb-2 text-center">
