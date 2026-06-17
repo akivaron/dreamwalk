@@ -84,7 +84,7 @@ export default function App() {
   const activeArtwork =
     songMode === "dream" && dream.context.song?.artworkUrl
       ? dream.context.song.artworkUrl
-      : undefined;
+      : curatedTrack.artworkUrl || undefined;
   const activeSongId = `${activeTitle}::${activeArtist}`;
   const activeAudioFile: string | null =
     songMode === "dream"
@@ -100,17 +100,11 @@ export default function App() {
 
   useEffect(() => clearTransition, [clearTransition]);
 
-  const handleSelectTrack = useCallback(
-    (id: string) => {
-      setSongMode("curated");
-      setTrackId(id);
-      const t = curatedSongs.find((x) => x.id === id);
-      if (t) {
-        dream.buildForCuratedTrack(id, t.title, t.artist, t.suggestedWorld);
-      }
-    },
-    [dream, curatedSongs],
-  );
+  const handleSelectTrack = useCallback((id: string) => {
+    setSongMode("curated");
+    setTrackId(id);
+    // The useEffect below will trigger buildForSong for the new trackId
+  }, []);
 
   const handleSelectDreamSong = useCallback(
     (song: DreamSong) => {
@@ -119,6 +113,26 @@ export default function App() {
     },
     [dream],
   );
+
+  // Background lyrics/narration fetch for the active curated track.
+  // Fires when curatedSongs loads from the API, when the user picks a new track, or when
+  // switching back from "dream" → "curated" (so the lyrics are always for the right track).
+  const { buildForSong } = dream;
+  useEffect(() => {
+    if (songMode !== "curated") return; // never interfere with an in-progress dream build
+    const track = curatedSongs.find((t) => t.id === trackId) ?? curatedSongs[0];
+    if (!track?.file) return; // initial TRACKS placeholder has no file — skip
+    void buildForSong({
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      album: "",
+      artworkUrl: track.artworkUrl ?? "",
+      previewUrl: null,
+      genre: "Ambient",
+      source: "curated" as const,
+    });
+  }, [songMode, curatedSongs, trackId, buildForSong]);
 
   // Navigate to detail page without starting dream build yet
   const handleViewDetail = useCallback(
@@ -296,7 +310,9 @@ export default function App() {
 
   const experienceKey = `${activeWorld.id}-${songMode === "dream" ? (dream.context.song?.id ?? "none") : trackId}`;
 
-  const showLoading = dream.loading && !!dream.context.song;
+  // Only show the loading screen for user-initiated dream builds (Any Song / SongDetail).
+  // The background curated-track build runs silently — no loading overlay.
+  const showLoading = songMode === "dream" && dream.loading && !!dream.context.song;
 
   // ── Song Detail route ──────────────────────────────────────────────────────
   if (matchDetail && detailSong) {
@@ -329,9 +345,7 @@ export default function App() {
             key={experienceKey}
             world={activeWorld}
             analyser={engine.analyser}
-            syncedLyrics={
-              songMode === "dream" ? (dream.context.lyrics?.synced ?? undefined) : undefined
-            }
+            syncedLyrics={dream.context.lyrics?.synced ?? undefined}
             getAudioTime={engine.getProgress ? () => engine.getProgress().time : undefined}
             onScreenshotReady={(fn) => {
               screenshotFn.current = fn;
