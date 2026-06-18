@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
 
 interface WishButtonProps {
   onOpen: () => void;
@@ -69,7 +70,7 @@ export function WishButton({ onOpen, hasWished }: WishButtonProps) {
           (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
         }}
       >
-        <span style={{ fontSize: "1rem" }}>✨</span>
+        <Sparkles style={{ width: "1rem", height: "1rem", flexShrink: 0 }} />
         {hasWished ? "Send another wish" : "Leave a wish"}
       </button>
     </div>

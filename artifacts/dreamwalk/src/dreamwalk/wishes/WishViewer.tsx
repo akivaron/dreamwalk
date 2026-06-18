@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import {
+  Anchor, Flame, Snowflake, Sparkles, Stars, Sun, Sunrise, TreePine,
+} from "lucide-react";
 import type { WishSample } from "./types";
 
 interface WishViewerProps {
@@ -18,14 +21,21 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-const WORLD_ICONS: Record<string, string> = {
-  "midnight-ocean": "🍾",
-  "eternal-winter": "❄️",
-  "mystic-valley": "🌿",
-  "savana-valley": "🏮",
-  "golden-sunrise": "🏮",
-  "crimson-dusk": "⭐",
+type IconComp = React.ComponentType<{ style?: React.CSSProperties }>;
+
+const WORLD_ICON_MAP: Record<string, IconComp> = {
+  "midnight-ocean": Anchor,
+  "eternal-winter": Snowflake,
+  "mystic-valley": TreePine,
+  "savana-valley": Sun,
+  "golden-sunrise": Sunrise,
+  "crimson-dusk": Stars,
 };
+
+function WorldIcon({ worldId }: { worldId: string }) {
+  const Icon = WORLD_ICON_MAP[worldId] ?? Sparkles;
+  return <Icon style={{ width: "2rem", height: "2rem", color: "rgba(255,255,255,0.65)" }} />;
+}
 
 export function WishViewer({ wish, onClose }: WishViewerProps) {
   const [entered, setEntered] = useState(false);
@@ -88,12 +98,12 @@ export function WishViewer({ wish, onClose }: WishViewerProps) {
       >
         <div
           style={{
-            fontSize: "2rem",
             marginBottom: "1rem",
-            textAlign: "center",
+            display: "flex",
+            justifyContent: "center",
           }}
         >
-          {WORLD_ICONS[wish.worldId] ?? "✨"}
+          <WorldIcon worldId={wish.worldId} />
         </div>
 
         <p
@@ -158,9 +168,14 @@ export function WishViewer({ wish, onClose }: WishViewerProps) {
               cursor: lit ? "default" : "pointer",
               fontFamily: "inherit",
               transition: "background 0.3s, border-color 0.3s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.35rem",
             }}
           >
-            {lit ? "🕯️ Light sent" : "🕯️ Send light"}
+            <Flame style={{ width: "0.9rem", height: "0.9rem", flexShrink: 0 }} />
+            {lit ? "Light sent" : "Send light"}
           </button>
         </div>
       </div>

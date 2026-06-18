@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Sparkles } from "lucide-react";
 
 interface WishModalProps {
   worldId: string;
@@ -241,7 +242,11 @@ export function WishModal({
                 e.currentTarget.style.background = "rgba(180,140,255,0.22)";
             }}
           >
-            {submitting ? "Sending…" : "✨ Send wish"}
+            {submitting ? "Sending…" : (
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem" }}>
+                <Sparkles style={{ width: "0.9rem", height: "0.9rem" }} /> Send wish
+              </span>
+            )}
           </button>
         </div>
 

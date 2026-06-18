@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Music } from "lucide-react";
 import type { TrendingTrack } from "../dream/types";
 
 interface TrendingDreamsProps {
@@ -37,7 +38,7 @@ export function TrendingDreams({ tracks, onExplore }: TrendingDreamsProps) {
                 onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
               />
             ) : (
-              <span className="flex h-14 w-14 items-center justify-center rounded-lg bg-white/10 text-white/40 text-lg">♪</span>
+              <span className="flex h-14 w-14 items-center justify-center rounded-lg bg-white/10 text-white/40"><Music className="w-5 h-5" /></span>
             )}
             <span className="line-clamp-1 w-full text-center text-xs font-light text-white/80 leading-snug">
               {track.title}

@@ -4,7 +4,7 @@ import {
   BookOpen, Building2, Check, Cloud, CloudRain, Disc, Droplets,
   ExternalLink, Flame, Globe, Heart, Home, Moon, Mountain, Music,
   Music2, Pen, Route, Search, Share2, Smile, Snowflake, Sparkles,
-  Stars, Sun, Sunrise, TreePine, User, Waves, Zap,
+  Stars, Sun, Sunrise, TreePine, User, Users, Waves, Zap,
 } from "lucide-react";
 import type { DreamSong, LyricsData, MoodData, TrendingTrack } from "../dream/types";
 import { fetchLyrics } from "../dream/api/lyrics";
@@ -225,9 +225,10 @@ function useSongWiki(song: DreamSong): SongWiki {
 
 // ─── Country helpers ──────────────────────────────────────────────────────────
 
-function countryFlag(code: string): string {
-  if (!code || code.length !== 2) return "";
-  return [...code.toUpperCase()].map((c) => String.fromCodePoint(c.charCodeAt(0) + 127397)).join("");
+function formatListeners(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return n.toLocaleString();
 }
 
 const COUNTRY_NAMES: Record<string, string> = {
@@ -240,6 +241,39 @@ const COUNTRY_NAMES: Record<string, string> = {
   MY:"Malaysia",SG:"Singapore",EG:"Egypt",AE:"UAE",SA:"Saudi Arabia",PK:"Pakistan",
   RU:"Russia",PL:"Poland",TR:"Turkey",CN:"China",VE:"Venezuela",PE:"Peru",EC:"Ecuador",
 };
+
+// ─── Artist Listeners hook (Bandsintown + Songstats) ─────────────────────────
+
+interface ArtistListeners {
+  trackerCount: number | null;
+  monthlyListeners: number | null;
+  loading: boolean;
+}
+
+function useArtistListeners(artist: string): ArtistListeners {
+  const [data, setData] = useState<ArtistListeners>({ trackerCount: null, monthlyListeners: null, loading: true });
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetch(`/api/artist-listeners?${new URLSearchParams({ artist })}`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!r.ok || cancelled) { if (!cancelled) setData((d) => ({ ...d, loading: false })); return; }
+        const json = (await r.json()) as Partial<ArtistListeners>;
+        if (!cancelled) setData({
+          trackerCount: json.trackerCount ?? null,
+          monthlyListeners: json.monthlyListeners ?? null,
+          loading: false,
+        });
+      } catch {
+        if (!cancelled) setData((d) => ({ ...d, loading: false }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [artist]);
+  return data;
+}
 
 // ─── World Listener Map ────────────────────────────────────────────────────────
 
@@ -298,8 +332,14 @@ const CONTINENT_POLYGONS = [
 ];
 
 function WorldListenerMap({
-  artistCountry, genres, artistGenres,
-}: { artistCountry: string | null; genres: string[]; artistGenres: string[] }) {
+  artistCountry, genres, artistGenres, trackerCount, monthlyListeners,
+}: {
+  artistCountry: string | null;
+  genres: string[];
+  artistGenres: string[];
+  trackerCount?: number | null;
+  monthlyListeners?: number | null;
+}) {
   const allGenres = useMemo(() => [...genres, ...artistGenres], [genres.join(","), artistGenres.join(",")]);
   const hubs = useMemo(
     () => LISTENER_HUBS.map((h) => ({ ...h, intensity: calcHubIntensity(h, artistCountry, allGenres) }))
@@ -311,6 +351,26 @@ function WorldListenerMap({
 
   return (
     <div className="space-y-5">
+      {/* Real listener stats */}
+      {(trackerCount != null || monthlyListeners != null) && (
+        <div className="flex items-center gap-5 pb-3 border-b border-white/6 flex-wrap">
+          {monthlyListeners != null && (
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-white/30 mb-0.5">Monthly Listeners</p>
+              <p className="text-sm font-light text-white/75 tracking-wider">{formatListeners(monthlyListeners)}</p>
+            </div>
+          )}
+          {trackerCount != null && (
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-white/30 mb-0.5">Global Trackers</p>
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3 w-3 text-indigo-400/60" />
+                <p className="text-sm font-light text-white/75 tracking-wider">{formatListeners(trackerCount)}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {/* SVG map */}
       <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-[#060a14]">
         <svg viewBox="0 0 600 280" className="w-full" style={{ display: "block" }}>
@@ -642,8 +702,8 @@ function DiscoveryCard({
           onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
         />
       ) : (
-        <div className="flex h-28 w-full items-center justify-center rounded-xl bg-white/10 text-3xl">
-          ♪
+        <div className="flex h-28 w-full items-center justify-center rounded-xl bg-white/10">
+          <Music className="h-8 w-8 text-white/30" />
         </div>
       )}
       <span className="line-clamp-1 text-xs font-light text-white/80">{track.title}</span>
@@ -690,6 +750,7 @@ export function SongDetail({
   const insights = useSongInsights(song);
   const trackDetails = useTrackDetails(song);
   const wiki = useSongWiki(song);
+  const listeners = useArtistListeners(song.artist);
   const largeArt = getLargeArtwork(song.artworkUrl);
 
   // ── Audio controls ──
@@ -900,8 +961,9 @@ export function SongDetail({
                       <span className="rounded-full border border-white/12 bg-white/6 px-3 py-0.5 text-[10px] tracking-widest text-white/50">{song.genre}</span>
                     )}
                     {!trackDetails.loading && trackDetails.artistCountry && (
-                      <span className="rounded-full border border-white/12 bg-white/6 px-3 py-0.5 text-[10px] tracking-widest text-white/50">
-                        {countryFlag(trackDetails.artistCountry)} {COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry}
+                      <span className="flex items-center gap-1 rounded-full border border-white/12 bg-white/6 px-3 py-0.5 text-[10px] tracking-widest text-white/50">
+                        <Globe className="h-2.5 w-2.5 shrink-0" />
+                        {COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry}
                       </span>
                     )}
                     {!trackDetails.loading && trackDetails.explicit && (
@@ -1511,8 +1573,9 @@ export function SongDetail({
                         <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">{song.album}</span>
                       )}
                       {trackDetails.artistCountry && (
-                        <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">
-                          {countryFlag(trackDetails.artistCountry)} {COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry}
+                        <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/4 px-3 py-1 text-[10px] tracking-widest text-white/45">
+                          <Globe className="h-2.5 w-2.5 shrink-0" />
+                          {COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry}
                         </span>
                       )}
                     </div>
@@ -1532,7 +1595,7 @@ export function SongDetail({
         >
           <GlassCard className="p-6">
             <div className="mb-4 flex items-center gap-2">
-              <span className="text-base leading-none select-none">🌠</span>
+              <Stars className="h-4 w-4 text-white/40" />
               <h2 className="text-[10px] uppercase tracking-[0.4em] text-white/40">
                 Wishes in this dream
               </h2>
@@ -1578,11 +1641,14 @@ export function SongDetail({
           transition={{ duration: 0.7, delay: 0.35 }}
         >
           <GlassCard className="p-6">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-[10px] uppercase tracking-[0.4em] text-white/40">Global Listeners</h2>
+            <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Globe className="h-3.5 w-3.5 text-white/30" />
+                <h2 className="text-[10px] uppercase tracking-[0.4em] text-white/40">Global Listeners</h2>
+              </div>
               {trackDetails.artistCountry && (
                 <span className="flex items-center gap-1.5 text-xs text-white/50">
-                  <span>{countryFlag(trackDetails.artistCountry)}</span>
+                  <Globe className="h-3 w-3 text-white/25" />
                   <span className="tracking-wide">{COUNTRY_NAMES[trackDetails.artistCountry.toUpperCase()] ?? trackDetails.artistCountry} artist</span>
                 </span>
               )}
@@ -1591,6 +1657,8 @@ export function SongDetail({
               artistCountry={trackDetails.artistCountry}
               genres={[...trackDetails.genres, ...(insights.mood.genreTags ?? []), song.genre].filter(Boolean)}
               artistGenres={trackDetails.artistGenres}
+              trackerCount={listeners.trackerCount}
+              monthlyListeners={listeners.monthlyListeners}
             />
           </GlassCard>
         </motion.section>

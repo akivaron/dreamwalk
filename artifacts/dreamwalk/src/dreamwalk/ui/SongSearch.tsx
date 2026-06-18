@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Music } from "lucide-react";
 import type { DreamSong } from "../dream/types";
 
 const API_BASE = import.meta.env.BASE_URL;
@@ -160,7 +161,7 @@ export function SongSearch({ onSelect, accentColor = "rgba(255,255,255,0.15)" }:
                     onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
                   />
                 ) : (
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white/40 text-xs">♪</span>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white/40"><Music className="w-4 h-4" /></span>
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-light tracking-wide text-white">

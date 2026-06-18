@@ -869,6 +869,66 @@ router.get("/audio-proxy", async (req: Request, res: Response) => {
   }
 });
 
+// ─── /api/artist-listeners — Bandsintown tracker + Songstats monthly listeners ─
+
+router.get("/artist-listeners", async (req: Request, res: Response) => {
+  const artist = String(req.query["artist"] ?? "").trim();
+  if (!artist) { res.status(400).json({ error: "artist required" }); return; }
+
+  const bandsintownId = process.env["BANDSINTOWN_APP_ID"];
+  const songstatsKey  = process.env["SONGSTATS_KEY"];
+
+  let trackerCount: number | null = null;
+  let monthlyListeners: number | null = null;
+  const sources: string[] = [];
+
+  // Bandsintown: fans tracking this artist globally
+  if (bandsintownId) {
+    try {
+      const btUrl =
+        `https://rest.bandsintown.com/artists/${encodeURIComponent(artist)}` +
+        `?app_id=${encodeURIComponent(bandsintownId)}`;
+      const btRes = await fetch(btUrl, { signal: AbortSignal.timeout(6000) });
+      if (btRes.ok) {
+        const btData = (await btRes.json()) as { tracker_count?: number };
+        if (typeof btData.tracker_count === "number") {
+          trackerCount = btData.tracker_count;
+          sources.push("bandsintown");
+        }
+      }
+    } catch { /* fall through */ }
+  }
+
+  // Songstats: Spotify monthly listeners via artist stats
+  if (songstatsKey) {
+    try {
+      const ssUrl =
+        `https://api.songstats.com/enterprise/v1/artists/stats?source=spotify` +
+        `&artist_name=${encodeURIComponent(artist)}`;
+      const ssRes = await fetch(ssUrl, {
+        headers: { apikey: songstatsKey },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (ssRes.ok) {
+        const ssData = (await ssRes.json()) as {
+          stats?: { monthly_listeners?: number };
+          data?: { stats?: { monthly_listeners?: number } };
+        };
+        const ml =
+          ssData.stats?.monthly_listeners ??
+          ssData.data?.stats?.monthly_listeners ??
+          null;
+        if (typeof ml === "number") {
+          monthlyListeners = ml;
+          sources.push("songstats");
+        }
+      }
+    } catch { /* fall through */ }
+  }
+
+  res.json({ artist, trackerCount, monthlyListeners, sources });
+});
+
 // ─── /api/curated — hand-picked popular songs via iTunes lookup ───────────────
 
 const CURATED_QUERIES = [
