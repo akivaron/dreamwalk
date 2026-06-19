@@ -36,10 +36,11 @@ async function searchSongsViaBackend(q: string): Promise<DreamSong[]> {
 
 interface SongSearchProps {
   onSelect: (song: DreamSong) => void;
+  onDetail?: (song: DreamSong) => void;
   accentColor?: string;
 }
 
-export function SongSearch({ onSelect, accentColor = "rgba(255,255,255,0.15)" }: SongSearchProps) {
+export function SongSearch({ onSelect, onDetail, accentColor = "rgba(255,255,255,0.15)" }: SongSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<DreamSong[]>([]);
   const [searching, setSearching] = useState(false);
@@ -172,7 +173,17 @@ export function SongSearch({ onSelect, accentColor = "rgba(255,255,255,0.15)" }:
                 </span>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
-                    onClick={() => handleSelect(song)}
+                    onClick={() => {
+                      if (onDetail) {
+                        audioRef.current?.pause();
+                        setPreviewing(null);
+                        setQuery("");
+                        setResults([]);
+                        onDetail(song);
+                      } else {
+                        handleSelect(song);
+                      }
+                    }}
                     className="flex items-center gap-1 rounded-lg border border-white/20 bg-white/8 px-2.5 py-1 text-[11px] tracking-widest text-white/70 transition-all hover:border-white/40 hover:bg-white/15 hover:text-white"
                   >
                     Details <ArrowRight className="h-3 w-3" />

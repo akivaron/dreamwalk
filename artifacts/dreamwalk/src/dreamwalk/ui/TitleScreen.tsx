@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import type { TrackDef } from "../types";
 import type { DreamSong, TrendingTrack } from "../dream/types";
 import { SongSearch } from "./SongSearch";
@@ -138,7 +139,7 @@ export function TitleScreen({
           >
             {/* ── Search field ──────────────────────────────────── */}
             <div className="flex flex-col gap-3">
-              <SongSearch onSelect={handleDreamSongSelect} />
+              <SongSearch onSelect={handleDreamSongSelect} onDetail={onViewDetail} />
 
               {/* Selected search result card */}
               {selectedDreamSong && (
@@ -171,9 +172,16 @@ export function TitleScreen({
                         transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
                       />
                     ) : (
-                      <span className="text-[10px] tracking-[0.2em] text-white/40">
-                        Selected
-                      </span>
+                      <>
+                        {onViewDetail && (
+                          <button
+                            onClick={() => onViewDetail(selectedDreamSong)}
+                            className="flex items-center gap-1 rounded-lg border border-white/20 bg-white/8 px-2.5 py-1 text-[11px] tracking-widest text-white/70 transition-all hover:border-white/40 hover:bg-white/15 hover:text-white"
+                          >
+                            Details <ArrowRight className="h-3 w-3" />
+                          </button>
+                        )}
+                      </>
                     )}
                     <button
                       onClick={handleClearDreamSong}
