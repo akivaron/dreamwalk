@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Music } from "lucide-react";
+import { Music, ArrowRight } from "lucide-react";
 import type { DreamSong } from "../dream/types";
 
 const API_BASE = import.meta.env.BASE_URL;
@@ -147,10 +147,9 @@ export function SongSearch({ onSelect, accentColor = "rgba(255,255,255,0.15)" }:
             style={{ transformOrigin: "top" }}
           >
             {results.map((song) => (
-              <motion.button
+              <motion.div
                 key={song.id}
-                onClick={() => handleSelect(song)}
-                className="group flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-white/8"
+                className="group flex w-full items-center gap-3 px-3 py-2 transition-colors hover:bg-white/8"
                 whileHover={{ x: 2 }}
               >
                 {song.artworkUrl ? (
@@ -171,23 +170,28 @@ export function SongSearch({ onSelect, accentColor = "rgba(255,255,255,0.15)" }:
                     {song.artist}
                   </span>
                 </span>
-                {song.previewUrl && (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => { e.stopPropagation(); togglePreview(song); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); togglePreview(song); } }}
-                    className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/20 text-white/60 transition-colors hover:border-white/50 hover:text-white"
-                    aria-label={previewing === song.id ? "Stop" : "Preview"}
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    onClick={() => handleSelect(song)}
+                    className="flex items-center gap-1 rounded-lg border border-white/20 bg-white/8 px-2.5 py-1 text-[11px] tracking-widest text-white/70 transition-all hover:border-white/40 hover:bg-white/15 hover:text-white"
                   >
-                    {previewing === song.id ? (
-                      <span className="block h-2.5 w-2.5 bg-current" />
-                    ) : (
-                      <span className="ml-0.5 block h-0 w-0 border-y-[4px] border-l-[7px] border-y-transparent border-l-current" />
-                    )}
-                  </span>
-                )}
-              </motion.button>
+                    Details <ArrowRight className="h-3 w-3" />
+                  </button>
+                  {song.previewUrl && (
+                    <button
+                      onClick={() => togglePreview(song)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full border border-white/20 text-white/60 transition-colors hover:border-white/50 hover:text-white"
+                      aria-label={previewing === song.id ? "Stop" : "Preview"}
+                    >
+                      {previewing === song.id ? (
+                        <span className="block h-2.5 w-2.5 bg-current" />
+                      ) : (
+                        <span className="ml-0.5 block h-0 w-0 border-y-[4px] border-l-[7px] border-y-transparent border-l-current" />
+                      )}
+                    </button>
+                  )}
+                </div>
+              </motion.div>
             ))}
           </motion.div>
         )}
